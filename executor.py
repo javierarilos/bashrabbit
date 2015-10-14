@@ -5,7 +5,24 @@ import time
 from socket import gethostname
 from rabbit_util import connect_and_declare
 
-consumer_channel = connect_and_declare()
+arguments = sys.argv[1:]
+
+host = '127.0.0.1'
+usr = 'guest'
+pas = 'guest'
+
+arguments_nr = len(arguments)
+if arguments_nr > 1 and arguments_nr != 3:
+    print "-Usage: python executor.py [host [user password]]."
+    sys.exit(1)
+if arguments_nr >= 1:
+    host = arguments[0]
+if arguments_nr == 3:
+    usr = arguments[1]
+    pas = arguments[2]
+
+print ">> Starting executor connecting to rabbitmq:", host, usr, pas
+consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
 
 def currtimemillis():
     return int(round(time.time() * 1000))
@@ -42,6 +59,7 @@ def handle_command_request(ch, method, properties, body):
 method_frame, header_frame, body = consumer_channel.basic_get('bashrabbit-jobs')
 
 consumer_channel.basic_consume(handle_command_request, queue='bashrabbit-jobs', no_ack=False)
+print "<< Ready: executor connected to rabbitmq:", host, usr, pas
 consumer_channel.start_consuming()
 
 sys.exit(0)

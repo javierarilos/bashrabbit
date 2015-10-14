@@ -1,7 +1,13 @@
-from pika import BlockingConnection, ConnectionParameters, BasicProperties
+from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
 
-def connect_and_declare(host='localhost'):
-    conn = BlockingConnection(ConnectionParameters(host))
+def connect_and_declare(host='localhost', usr='guest', pas='guest'):
+    credentials = PlainCredentials(usr, pas)
+    parameters = ConnectionParameters( host,
+                                       5672,
+                                       '/',
+                                       credentials)
+    conn = BlockingConnection(parameters)
+    #conn = BlockingConnection(ConnectionParameters(host))
     ch = conn.channel()
 
     ch.exchange_declare(exchange='bashrabbit', type='direct')
