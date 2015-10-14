@@ -7,18 +7,25 @@ from rabbit_util import connect_and_declare
 
 consumer_channel = connect_and_declare()
 
+def currtimemillis():
+    return int(round(time.time() * 1000))
+
 def handle_command_request(ch, method, properties, body):
         msg = json.loads(body)
         print ">>>> msg received from queue 'bashrabbit-jobs' : ", msg
         command = msg[u'command']
-
+        pre_command_ts = currtimemillis()
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         o, e = p.communicate()
+        post_command_ts = currtimemillis()
 
         response_msg = {
-            'correlation_id': msg[u'correlation_id'],
-            'reply_to': msg[u'reply_to'],
-            'command': msg[u'command'],
+            'correlation_id': msg['correlation_id'],
+            'reply_to': msg['reply_to'],
+            'command': msg['command'],
+            'request_ts': msg['request_ts'],
+            'pre_command_ts': pre_command_ts,
+            'post_command_ts': post_command_ts,
             'returncode': p.returncode,
             'executor_name': gethostname(),
             'stdout': o,
