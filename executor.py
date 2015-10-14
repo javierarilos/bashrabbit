@@ -56,8 +56,6 @@ def handle_command_request(ch, method, properties, body):
         ch.basic_publish(exchange='bashrabbit-responses', routing_key='', body=response_str)
         ch.basic_ack(method.delivery_tag)
 
-method_frame, header_frame, body = consumer_channel.basic_get('bashrabbit-jobs')
-
 consumer_channel.basic_consume(handle_command_request, queue='bashrabbit-jobs', no_ack=False)
 print "<< Ready: executor connected to rabbitmq:", host, usr, pas
 consumer_channel.start_consuming()
