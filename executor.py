@@ -5,14 +5,13 @@ import time
 from socket import gethostname
 from rabbit_util import connect_and_declare
 
-ch = connect_and_declare()
+consumer_channel = connect_and_declare()
 
-while True:
-    method_frame, header_frame, body = ch.basic_get('bashrabbit-jobs')
-    if body is not None:
+def handle_command_request(ch, method, properties, body):
         msg = json.loads(body)
-        print "msg received from queue 'bashrabbit-jobs' : ", msg
+        print ">>>> msg received from queue 'bashrabbit-jobs' : ", msg
         command = msg[u'command']
+
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         o, e = p.communicate()
 
@@ -27,13 +26,15 @@ while True:
         }
 
         response_str = json.dumps(response_msg)
-        print "executed! response is:", response_msg
+        print "<<<< executed! response is:", response_msg
 
         #ch.basic_publish(exchange=msg['reply_to'], routing_key='bashrabbit', body=response_str)
         ch.basic_publish(exchange='bashrabbit-responses', routing_key='', body=response_str)
-        ch.basic_ack(method_frame.delivery_tag)
-    else:
-        print "no message was waiting for us... sleep."
-        time.sleep(1)
+        ch.basic_ack(method.delivery_tag)
+
+method_frame, header_frame, body = consumer_channel.basic_get('bashrabbit-jobs')
+
+consumer_channel.basic_consume(handle_command_request, queue='bashrabbit-jobs', no_ack=False)
+consumer_channel.start_consuming()
 
 sys.exit(0)
