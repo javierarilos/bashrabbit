@@ -24,8 +24,10 @@ if arguments_nr == 3:
 print ">> Starting executor connecting to rabbitmq:", host, usr, pas
 consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
 
+
 def currtimemillis():
     return int(round(time.time() * 1000))
+
 
 def handle_command_request(ch, method, properties, body):
         msg = json.loads(body)
@@ -52,7 +54,7 @@ def handle_command_request(ch, method, properties, body):
         response_str = json.dumps(response_msg)
         print "<<<< executed! response is:", response_msg
 
-        #ch.basic_publish(exchange=msg['reply_to'], routing_key='bashrabbit', body=response_str)
+        # ch.basic_publish(exchange=msg['reply_to'], routing_key='bashrabbit', body=response_str)
         ch.basic_publish(exchange='bashrabbit-responses', routing_key='', body=response_str)
         ch.basic_ack(method.delivery_tag)
 
