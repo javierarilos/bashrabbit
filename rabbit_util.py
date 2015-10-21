@@ -8,11 +8,11 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest'):
     # conn = BlockingConnection(ConnectionParameters(host))
     ch = conn.channel()
 
-    ch.exchange_declare(exchange='bashrabbit', type='direct')
-    ch.queue_declare(queue='bashrabbit-jobs')
-    ch.queue_bind(exchange='bashrabbit', queue='bashrabbit-jobs', routing_key='')
+    ch.exchange_declare(exchange='bashtasks', type='direct')
+    ch.queue_declare(queue='bashtasks-jobs')
+    ch.queue_bind(exchange='bashtasks', queue='bashtasks-jobs', routing_key='')
 
-    ch.exchange_declare(exchange='bashrabbit-responses', type='direct')
-    ch.queue_declare(queue='bashrabbit-responses')
-    ch.queue_bind(exchange='bashrabbit-responses', queue='bashrabbit-responses', routing_key='')
+    ch.exchange_declare(exchange='bashtasks-responses', type='direct')
+    ch.queue_declare(queue='bashtasks-responses')
+    ch.queue_bind(exchange='bashtasks-responses', queue='bashtasks-responses', routing_key='')
     return ch

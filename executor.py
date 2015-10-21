@@ -31,7 +31,7 @@ def currtimemillis():
 
 def handle_command_request(ch, method, properties, body):
         msg = json.loads(body)
-        print ">>>> msg received from queue 'bashrabbit-jobs' : ", msg
+        print ">>>> msg received from queue 'bashtasks-jobs' : ", msg
         command = msg[u'command']
         pre_command_ts = currtimemillis()
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -54,11 +54,11 @@ def handle_command_request(ch, method, properties, body):
         response_str = json.dumps(response_msg)
         print "<<<< executed! response is:", response_msg
 
-        # ch.basic_publish(exchange=msg['reply_to'], routing_key='bashrabbit', body=response_str)
-        ch.basic_publish(exchange='bashrabbit-responses', routing_key='', body=response_str)
+        # ch.basic_publish(exchange=msg['reply_to'], routing_key='bashtasks', body=response_str)
+        ch.basic_publish(exchange='bashtasks-responses', routing_key='', body=response_str)
         ch.basic_ack(method.delivery_tag)
 
-consumer_channel.basic_consume(handle_command_request, queue='bashrabbit-jobs', no_ack=False)
+consumer_channel.basic_consume(handle_command_request, queue='bashtasks-jobs', no_ack=False)
 print "<< Ready: executor connected to rabbitmq:", host, usr, pas
 consumer_channel.start_consuming()
 

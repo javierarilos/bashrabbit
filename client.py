@@ -36,16 +36,16 @@ def handle_command_response(ch, method, properties, body):
         ch.stop_consuming()
 
 
-ch.basic_consume(handle_command_response, queue='bashrabbit-responses', no_ack=False)
+ch.basic_consume(handle_command_response, queue='bashtasks-responses', no_ack=False)
 
 msg = {
     'command': arguments[1:],
     'correlation_id': correlation_id,
     'request_ts': currtimemillis(),
-    'reply_to': 'bashrabbit-responses'
+    'reply_to': 'bashtasks-responses'
 }
 msg_str = json.dumps(msg)
-ch.basic_publish(exchange='bashrabbit', routing_key='', body=msg_str)
+ch.basic_publish(exchange='bashtasks', routing_key='', body=msg_str)
 
 ch.start_consuming()
 sys.exit(0)
