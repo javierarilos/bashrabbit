@@ -3,7 +3,7 @@ import sys
 import json
 import time
 from socket import gethostname
-from rabbit_util import connect_and_declare
+from bashtasks.rabbit_util import connect_and_declare
 
 arguments = sys.argv[1:]
 

@@ -1,7 +1,7 @@
 import sys
 import json
 import time
-from rabbit_util import connect_and_declare
+from bashtasks.rabbit_util import connect_and_declare
 
 ch = connect_and_declare()
 
