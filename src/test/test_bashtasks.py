@@ -1,13 +1,13 @@
 import unittest
-from bashtasks import init
-from bashtasks import post_task
+import bashtasks
 
 
 class TestBashTasks(unittest.TestCase):
-    def test_connect_and_post_task(self):
-        init()
-        post_task()
-        self.assertEqual('foo'.upper(), 'FOO')
+
+    def test_init_returns_bashtasks(self):
+        bashtask = bashtasks.init()
+        isBashTask = hasattr(bashtask, 'post_task')
+        self.assertTrue(isBashTask)
 
 if __name__ == '__main__':
     unittest.main()
