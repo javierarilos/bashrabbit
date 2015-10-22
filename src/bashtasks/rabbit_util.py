@@ -13,7 +13,6 @@ def connect(host='localhost', usr='guest', pas='guest'):
 
 def connect_and_declare(host='localhost', usr='guest', pas='guest'):
     conn = connect(host=host, usr=usr, pas=pas)
-    # conn = BlockingConnection(ConnectionParameters(host))
     ch = conn.channel()
 
     ch.exchange_declare(exchange='bashtasks', type='direct')
