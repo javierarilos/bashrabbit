@@ -6,25 +6,6 @@ from socket import gethostname
 from bashtasks.rabbit_util import connect_and_declare
 from bashtasks.constants import TASK_POOL, TASK_RESPONSES_POOL
 
-arguments = sys.argv[1:]
-
-host = '127.0.0.1'
-usr = 'guest'
-pas = 'guest'
-
-arguments_nr = len(arguments)
-if arguments_nr > 1 and arguments_nr != 3:
-    print "-Usage: python executor.py [host [user password]]."
-    sys.exit(1)
-if arguments_nr >= 1:
-    host = arguments[0]
-if arguments_nr == 3:
-    usr = arguments[1]
-    pas = arguments[2]
-
-print ">> Starting executor connecting to rabbitmq:", host, usr, pas
-consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
-
 
 def currtimemillis():
     return int(round(time.time() * 1000))
@@ -59,8 +40,28 @@ def handle_command_request(ch, method, properties, body):
         ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
         ch.basic_ack(method.delivery_tag)
 
-consumer_channel.basic_consume(handle_command_request, queue=TASK_POOL, no_ack=False)
-print "<< Ready: executor connected to rabbitmq:", host, usr, pas
-consumer_channel.start_consuming()
 
-sys.exit(0)
+def start_executor(host='127.0.0.1', usr='guest', pas='guest'):
+    print ">> Starting executor connecting to rabbitmq:", host, usr, pas
+    consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
+    consumer_channel.basic_consume(handle_command_request, queue=TASK_POOL, no_ack=False)
+    print "<< Ready: executor connected to rabbitmq:", host, usr, pas
+    consumer_channel.start_consuming()
+
+
+if __name__ == '__main__':
+    arguments = sys.argv[1:]
+    host = '127.0.0.1'
+    usr = 'guest'
+    pas = 'guest'
+    arguments_nr = len(arguments)
+    if arguments_nr > 1 and arguments_nr != 3:
+        print "-Usage: python executor.py [host [user password]]."
+        sys.exit(1)
+    if arguments_nr >= 1:
+        host = arguments[0]
+    if arguments_nr == 3:
+        usr = arguments[1]
+        pas = arguments[2]
+
+    start_executor(host, usr, pas)
