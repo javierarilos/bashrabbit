@@ -1,4 +1,5 @@
 from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
+from constants import TASK_POOL, TASK_RESPONSES_POOL
 
 
 def connect(host='localhost', usr='guest', pas='guest'):
@@ -15,13 +16,13 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest'):
     conn = connect(host=host, usr=usr, pas=pas)
     ch = conn.channel()
 
-    ch.exchange_declare(exchange='bashtasks', type='direct')
-    ch.queue_declare(queue='bashtasks-jobs')
-    ch.queue_bind(exchange='bashtasks', queue='bashtasks-jobs', routing_key='')
+    ch.exchange_declare(exchange=TASK_POOL, type='direct')
+    ch.queue_declare(queue=TASK_POOL)
+    ch.queue_bind(exchange=TASK_POOL, queue=TASK_POOL, routing_key='')
 
-    ch.exchange_declare(exchange='bashtasks-responses', type='direct')
-    ch.queue_declare(queue='bashtasks-responses')
-    ch.queue_bind(exchange='bashtasks-responses', queue='bashtasks-responses', routing_key='')
+    ch.exchange_declare(exchange=TASK_RESPONSES_POOL, type='direct')
+    ch.queue_declare(queue=TASK_RESPONSES_POOL)
+    ch.queue_bind(exchange=TASK_RESPONSES_POOL, queue=TASK_RESPONSES_POOL, routing_key='')
     return ch
 
 

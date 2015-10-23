@@ -1,6 +1,6 @@
 """bastasks constants are here
 """
 
-
-RESPONSES_POOL = 'bashtasks-responses-pool'
-REQUESTS_POOL = 'bashtasks'
+BASHTASKS = 'bashtasks'
+TASK_RESPONSES_POOL = 'bashtasks-responses-pool'
+TASK_POOL = 'bashtasks-jobs-pool'

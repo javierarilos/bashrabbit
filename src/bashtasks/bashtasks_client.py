@@ -2,7 +2,7 @@
 """
 import json
 import time
-from constants import RESPONSES_POOL, REQUESTS_POOL
+from constants import TASK_RESPONSES_POOL, TASK_POOL
 from bashtasks.rabbit_util import connect_and_declare
 
 channel_inst = None
@@ -12,7 +12,7 @@ def currtimemillis():
     return int(round(time.time() * 1000))
 
 
-def post_task(command, reply_to=RESPONSES_POOL):
+def post_task(command, reply_to=TASK_RESPONSES_POOL):
     print '>>>>> posting task ', command
     msg = {
         'command': command,
@@ -21,7 +21,7 @@ def post_task(command, reply_to=RESPONSES_POOL):
         'reply_to': reply_to
     }
     msg_str = json.dumps(msg)
-    channel_inst.basic_publish(exchange=REQUESTS_POOL, routing_key='', body=msg_str)
+    channel_inst.basic_publish(exchange=TASK_POOL, routing_key='', body=msg_str)
 
 
 class BashTasks:
