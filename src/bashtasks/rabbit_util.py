@@ -26,6 +26,14 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest'):
     return ch
 
 
+def purge(host='localhost', usr='guest', pas='guest'):
+    conn = connect(host=host, usr=usr, pas=pas)
+    ch = conn.channel()
+
+    ch.queue_purge(queue=TASK_POOL)
+    ch.queue_purge(queue=TASK_RESPONSES_POOL)
+
+
 def is_rabbit_available(host='localhost', usr='guest', pas='guest'):
     conn = connect(host=host, usr=usr, pas=pas)
     if conn is not None:
