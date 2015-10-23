@@ -4,6 +4,7 @@ import json
 import time
 from socket import gethostname
 from bashtasks.rabbit_util import connect_and_declare
+from bashtasks.constants import TASK_POOL, TASK_RESPONSES_POOL
 
 arguments = sys.argv[1:]
 
@@ -55,10 +56,10 @@ def handle_command_request(ch, method, properties, body):
         print "<<<< executed! response is:", response_msg
 
         # ch.basic_publish(exchange=msg['reply_to'], routing_key='bashtasks', body=response_str)
-        ch.basic_publish(exchange='bashtasks-responses', routing_key='', body=response_str)
+        ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
         ch.basic_ack(method.delivery_tag)
 
-consumer_channel.basic_consume(handle_command_request, queue='bashtasks-jobs', no_ack=False)
+consumer_channel.basic_consume(handle_command_request, queue=TASK_POOL, no_ack=False)
 print "<< Ready: executor connected to rabbitmq:", host, usr, pas
 consumer_channel.start_consuming()
 
