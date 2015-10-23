@@ -55,10 +55,9 @@ class IntegrationTesting(unittest.TestCase):
     def test_post_task_sends_message(self):
         bashtasks = bashtasks_mod.init()
         bashtasks.post_task(['ls', '-la'])
-        timeout = 1
+
         queue_name = TASK_POOL
-        channel = rabbit_util.connect().channel()
-        body = assertMessageInQueue(queue_name, channel=channel, timeout=timeout)
+        body = assertMessageInQueue(queue_name)
         # print (')))))===>> received:', body)
 
 
