@@ -5,25 +5,9 @@ from datetime import datetime
 import bashtasks as bashtasks_mod
 import bashtasks.rabbit_util as rabbit_util
 from bashtasks.constants import TASK_POOL
+from pika_assertions import assertMessageInQueue
 
 unavailable_rabbit = not rabbit_util.is_rabbit_available()
-
-
-def assertMessageInQueue(queue_name, channel=None, timeout=3):
-    if not channel:
-        channel = rabbit_util.connect().channel()
-
-    start_waiting = datetime.now()
-    while True:
-        method_frame, header_frame, body = channel.basic_get(queue_name)
-        if body:
-            channel.basic_ack(method_frame.delivery_tag)
-            return body
-        else:
-            if (datetime.now() - start_waiting).total_seconds() > timeout:
-                raise Exception('Timeout ({}secs) exceeded waiting for message in queue: "{}"'
-                                .format(timeout, queue_name))
-            time.sleep(0.01)
 
 
 class FakeChannel:
@@ -58,7 +42,6 @@ class IntegrationTesting(unittest.TestCase):
 
         queue_name = TASK_POOL
         body = assertMessageInQueue(queue_name)
-        # print (')))))===>> received:', body)
 
 
 if __name__ == '__main__':
