@@ -10,7 +10,7 @@ import bashtasks as bashtasks_mod
 arguments = sys.argv
 
 if len(arguments) < 2:
-    print "Usage: python client_cli.py <COMMAND> [ARGUMENTS...]"
+    print("Usage: python client_cli.py <COMMAND> [ARGUMENTS...]")
     sys.exit(0)
 
 

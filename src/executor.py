@@ -12,8 +12,9 @@ def currtimemillis():
 
 
 def handle_command_request(ch, method, properties, body):
-        msg = json.loads(body)
-        print ">>>> msg received from queue 'bashtasks-jobs' : ", msg
+        body_str = body.decode('utf-8')
+        msg = json.loads(body_str)
+        print(">>>> msg received from queue 'bashtasks-jobs' : ", msg)
         command = msg[u'command']
         pre_command_ts = currtimemillis()
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -29,12 +30,12 @@ def handle_command_request(ch, method, properties, body):
             'post_command_ts': post_command_ts,
             'returncode': p.returncode,
             'executor_name': gethostname(),
-            'stdout': o,
-            'stderr': e
+            'stdout': o.decode('utf-8'),
+            'stderr': e.decode('utf-8')
         }
 
         response_str = json.dumps(response_msg)
-        print "<<<< executed! response is:", response_msg
+        print("<<<< executed! response is:", response_msg)
 
         # ch.basic_publish(exchange=msg['reply_to'], routing_key='bashtasks', body=response_str)
         ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
@@ -42,10 +43,10 @@ def handle_command_request(ch, method, properties, body):
 
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest'):
-    print ">> Starting executor connecting to rabbitmq:", host, usr, pas
+    print(">> Starting executor connecting to rabbitmq:", host, usr, pas)
     consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
     consumer_channel.basic_consume(handle_command_request, queue=TASK_POOL, no_ack=False)
-    print "<< Ready: executor connected to rabbitmq:", host, usr, pas
+    print("<< Ready: executor connected to rabbitmq:", host, usr, pas)
     consumer_channel.start_consuming()
 
 
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     pas = 'guest'
     arguments_nr = len(arguments)
     if arguments_nr > 1 and arguments_nr != 3:
-        print "-Usage: python executor.py [host [user password]]."
+        print("-Usage: python executor.py [host [user password]].")
         sys.exit(1)
     if arguments_nr >= 1:
         host = arguments[0]

@@ -4,7 +4,7 @@ import json
 import time
 from datetime import datetime
 
-from constants import TASK_RESPONSES_POOL, TASK_POOL
+from bashtasks.constants import TASK_RESPONSES_POOL, TASK_POOL
 from bashtasks.rabbit_util import connect_and_declare
 
 channel_inst = None
@@ -19,7 +19,7 @@ def post_task(command, reply_to=TASK_RESPONSES_POOL):
         does NOT wait for response.
         :return: <dict> message created for the task.
     """
-    print '>>>>> posting task ', command
+    print('>>>>> posting task ', command)
     msg = {
         'command': command,
         'correlation_id': currtimemillis(),
@@ -42,7 +42,7 @@ def execute_task(command, reply_to=TASK_RESPONSES_POOL, timeout=10):
         method_frame, header_frame, body = channel_inst.basic_get(TASK_RESPONSES_POOL)
         if body:
             channel_inst.basic_ack(method_frame.delivery_tag)
-            return json.loads(body)
+            return json.loads(body.decode('utf-8'))
         else:
             if (datetime.now() - start_waiting).total_seconds() > timeout:
                 raise Exception('Timeout ({}secs) waiting for response 2 msg: {} in queue: "{}"'

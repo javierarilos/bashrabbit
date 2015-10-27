@@ -1,5 +1,5 @@
 from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
-from constants import TASK_POOL, TASK_RESPONSES_POOL
+from bashtasks.constants import TASK_POOL, TASK_RESPONSES_POOL
 
 
 def connect(host='localhost', usr='guest', pas='guest'):
