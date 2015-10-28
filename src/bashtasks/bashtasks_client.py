@@ -4,8 +4,9 @@ import json
 import time
 from datetime import datetime
 
-from bashtasks.constants import TASK_RESPONSES_POOL, TASK_POOL
-from bashtasks.rabbit_util import connect_and_declare
+from bashtasks.constants import TASK_RESPONSES_POOL, TASK_REQUESTS_POOL
+from bashtasks.constants import Destination, DestinationNames
+from bashtasks.rabbit_util import connect_and_declare, declare_and_bind
 
 channel_inst = None
 
@@ -14,25 +15,29 @@ def currtimemillis():
     return int(round(time.time() * 1000))
 
 
-def post_task(command, reply_to=TASK_RESPONSES_POOL):
-    """ posts command to executors via RabbitMQ TASK_POOL
+def post_task(command, reply_to=Destination.responses_pool):
+    """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
         does NOT wait for response.
         :return: <dict> message created for the task.
     """
     print('>>>>> posting task ', command)
+
+    if reply_to is Destination.responses_exclusive:
+        declare_and_bind(channel_inst, DestinationNames.get_for(reply_to))
+
     msg = {
         'command': command,
         'correlation_id': currtimemillis(),
         'request_ts': currtimemillis(),
-        'reply_to': reply_to
+        'reply_to': DestinationNames.get_for(reply_to)
     }
     msg_str = json.dumps(msg)
-    channel_inst.basic_publish(exchange=TASK_POOL, routing_key='', body=msg_str)
+    channel_inst.basic_publish(exchange=TASK_REQUESTS_POOL, routing_key='', body=msg_str)
     return msg
 
 
-def execute_task(command, reply_to=TASK_RESPONSES_POOL, timeout=10):
-    """ posts command to executors via RabbitMQ TASK_POOL
+def execute_task(command, reply_to=Destination.responses_pool, timeout=10):
+    """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
         synchronously waits for response.
         :return: <dict> response message.
     """

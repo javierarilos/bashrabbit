@@ -38,4 +38,4 @@ print("    command : " + str(command_time) + "ms.")
 print('==========================================================================================')
 print(json.dumps(response_msg, indent=2))
 
-sys.exit(0)
+#sys.exit(0)

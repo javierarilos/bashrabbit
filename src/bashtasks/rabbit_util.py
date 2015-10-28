@@ -1,5 +1,5 @@
 from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
-from bashtasks.constants import TASK_POOL, TASK_RESPONSES_POOL
+from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 
 def connect(host='localhost', usr='guest', pas='guest'):
@@ -12,17 +12,19 @@ def connect(host='localhost', usr='guest', pas='guest'):
     return conn
 
 
+def declare_and_bind(ch, name, routing_key=''):
+    ch.exchange_declare(exchange=name, type='direct')
+    ch.queue_declare(queue=name)
+    ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
+
+
 def connect_and_declare(host='localhost', usr='guest', pas='guest'):
     conn = connect(host=host, usr=usr, pas=pas)
     ch = conn.channel()
 
-    ch.exchange_declare(exchange=TASK_POOL, type='direct')
-    ch.queue_declare(queue=TASK_POOL)
-    ch.queue_bind(exchange=TASK_POOL, queue=TASK_POOL, routing_key='')
+    declare_and_bind(ch, TASK_REQUESTS_POOL, routing_key='')
+    declare_and_bind(ch, TASK_RESPONSES_POOL, routing_key='')
 
-    ch.exchange_declare(exchange=TASK_RESPONSES_POOL, type='direct')
-    ch.queue_declare(queue=TASK_RESPONSES_POOL)
-    ch.queue_bind(exchange=TASK_RESPONSES_POOL, queue=TASK_RESPONSES_POOL, routing_key='')
     return ch
 
 
@@ -30,7 +32,7 @@ def purge(host='localhost', usr='guest', pas='guest'):
     conn = connect(host=host, usr=usr, pas=pas)
     ch = conn.channel()
 
-    ch.queue_purge(queue=TASK_POOL)
+    ch.queue_purge(queue=TASK_REQUESTS_POOL)
     ch.queue_purge(queue=TASK_RESPONSES_POOL)
 
 

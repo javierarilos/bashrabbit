@@ -4,7 +4,7 @@ import json
 import time
 from socket import gethostname
 from bashtasks.rabbit_util import connect_and_declare
-from bashtasks.constants import TASK_POOL, TASK_RESPONSES_POOL
+from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 
 def currtimemillis():
@@ -45,7 +45,7 @@ def handle_command_request(ch, method, properties, body):
 def start_executor(host='127.0.0.1', usr='guest', pas='guest'):
     print(">> Starting executor connecting to rabbitmq:", host, usr, pas)
     consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
-    consumer_channel.basic_consume(handle_command_request, queue=TASK_POOL, no_ack=False)
+    consumer_channel.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
     print("<< Ready: executor connected to rabbitmq:", host, usr, pas)
     consumer_channel.start_consuming()
 
