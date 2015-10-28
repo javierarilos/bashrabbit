@@ -5,8 +5,8 @@ import multiprocessing
 
 import bashtasks as bashtasks_mod
 import bashtasks.rabbit_util as rabbit_util
-from bashtasks.constants import TASK_POOL, TASK_RESPONSES_POOL
-from pika_assertions import assertMessageInQueue
+from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
+from test.pika_assertions import assertMessageInQueue
 import executor
 
 unavailable_rabbit = not rabbit_util.is_rabbit_available()
@@ -42,7 +42,7 @@ class IntegTestPostTask(unittest.TestCase):
         bashtasks = bashtasks_mod.init()
         bashtasks.post_task(['ls', '-la'])
 
-        queue_name = TASK_POOL
+        queue_name = TASK_REQUESTS_POOL
         body = assertMessageInQueue(queue_name)
 
     def test_post_task_creates_correct_task_msg(self):
