@@ -1,17 +1,22 @@
 #!/usr/bin/env python
-""" Execute a task and print the response on stdout.
+""" Execute a task using bashtasks and prints the response to stdout.
 """
 import sys
 import json
 import time
+import argparse
 
 import bashtasks as bashtasks_mod
 
-arguments = sys.argv
-
-if len(arguments) < 2:
-    print("Usage: python client_cli.py <COMMAND> [ARGUMENTS...]")
-    sys.exit(0)
+parser = argparse.ArgumentParser(description=globals()['__doc__'], add_help=True)
+parser.add_argument('--host', default='127.0.0.1', dest='host')
+parser.add_argument('--port', default=5672, dest='port', type=int)
+parser.add_argument('--user', default='guest', dest='usr')
+parser.add_argument('--pass', default='guest', dest='pas')
+parser.add_argument('--command', required=True, dest='command',
+                    metavar='"COMMAND" to execute. Better wrapped with quotes (")')
+args = parser.parse_args()
+args.command = args.command.split()
 
 
 def currtimemillis():
@@ -19,23 +24,28 @@ def currtimemillis():
 
 start_ts = currtimemillis()
 
-bashtasks = bashtasks_mod.init()
-response_msg = bashtasks.execute_task(arguments[1:])
+bashtasks = bashtasks_mod.init(host=args.host, usr=args.usr, pas=args.pas)
+response_msg = bashtasks.execute_task(args.command)
 
 total_time = currtimemillis() - response_msg['request_ts']
 command_time = response_msg['post_command_ts'] - response_msg['pre_command_ts']
-print('==========================================================================================')
+print('=======================================================================================')
 print("received response: returncode : " + str(response_msg['returncode']))
 print("                   command    : " + ' '.join(response_msg['command']))
 print("                   executor   : " + response_msg['executor_name'])
+if response_msg['returncode'] != 0:
+    print("                   stderr     : ")
+    print('_______________________________________________________________________________________')
+    print(response_msg['stderr'])
+    print('_______________________________________________________________________________________')
 print("                   stdout     : ")
-print('__________________________________________________________________________________________')
+print('_______________________________________________________________________________________')
 print(response_msg['stdout'])
-print('__________________________________________________________________________________________')
+print('_______________________________________________________________________________________')
 print("Time:")
 print("    total   : " + str(total_time) + "ms.")
 print("    command : " + str(command_time) + "ms.")
-print('==========================================================================================')
+print('=======================================================================================')
 print(json.dumps(response_msg, indent=2))
 
-#sys.exit(0)
+sys.exit(0)
