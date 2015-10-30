@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+""" executor is the process that executes bashtasks
+"""
+import argparse
 import subprocess
 import sys
 import json
@@ -51,18 +55,11 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest'):
 
 
 if __name__ == '__main__':
-    arguments = sys.argv[1:]
-    host = '127.0.0.1'
-    usr = 'guest'
-    pas = 'guest'
-    arguments_nr = len(arguments)
-    if arguments_nr > 1 and arguments_nr != 3:
-        print("-Usage: python executor.py [host [user password]].")
-        sys.exit(1)
-    if arguments_nr >= 1:
-        host = arguments[0]
-    if arguments_nr == 3:
-        usr = arguments[1]
-        pas = arguments[2]
+    parser = argparse.ArgumentParser(description=globals()['__doc__'], add_help=True)
+    parser.add_argument('--host', default='127.0.0.1', dest='host')
+    parser.add_argument('--port', default=5672, dest='port', type=int)
+    parser.add_argument('--user', default='guest', dest='usr')
+    parser.add_argument('--pass', default='guest', dest='pas')
+    args = parser.parse_args()
 
-    start_executor(host, usr, pas)
+    start_executor(host=args.host, usr=args.usr, pas=args.pas)
