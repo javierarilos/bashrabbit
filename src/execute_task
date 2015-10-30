@@ -13,6 +13,7 @@ parser.add_argument('--host', default='127.0.0.1', dest='host')
 parser.add_argument('--port', default=5672, dest='port', type=int)
 parser.add_argument('--user', default='guest', dest='usr')
 parser.add_argument('--pass', default='guest', dest='pas')
+parser.add_argument('--no-wait', default=False, action='store_true', dest='fire_and_forget')
 parser.add_argument('--command', required=True, dest='command',
                     metavar='"COMMAND" to execute. Better wrapped with quotes (")')
 args = parser.parse_args()
@@ -25,6 +26,11 @@ def currtimemillis():
 start_ts = currtimemillis()
 
 bashtasks = bashtasks_mod.init(host=args.host, usr=args.usr, pas=args.pas)
+
+if args.fire_and_forget:
+    bashtasks.post_task(args.command)
+    sys.exit(0)
+
 response_msg = bashtasks.execute_task(args.command)
 
 total_time = currtimemillis() - response_msg['request_ts']
@@ -46,6 +52,5 @@ print("Time:")
 print("    total   : " + str(total_time) + "ms.")
 print("    command : " + str(command_time) + "ms.")
 print('=======================================================================================')
-print(json.dumps(response_msg, indent=2))
 
 sys.exit(0)
