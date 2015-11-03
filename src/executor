@@ -53,6 +53,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest'):
     curr_th_name = threading.current_thread().name
     print(">> Starting executor", curr_th_name, "connecting to rabbitmq:", host, usr, pas)
     consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
+    consumer_channel.basic_qos(prefetch_count=1)  # consume msgs one at a time
     consumer_channel.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
     print("<< Ready: executor", curr_th_name, "connected to rabbitmq:", host, usr, pas)
     consumer_channel.start_consuming()
