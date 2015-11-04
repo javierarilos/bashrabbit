@@ -13,6 +13,7 @@ def time_post_to_executed(msg):
 class TaskStatistics:
     def __init__(self):
         self.msgs = []
+        self.timeCreated = currtimemillis()
 
     def trackMsg(self, msg):
         self.msgs.append(msg)
@@ -35,8 +36,29 @@ class TaskStatistics:
     def errorsNumber(self):
         return len(self.allErrors())
 
+    def okNumber(self):
+        return self.msgsNumber() - self.errorsNumber()
+
     def getWorkersCounter(self):
         return Counter((msg['executor_name'] for msg in self.msgs))
 
     def getReturnCodesCounter(self):
         return Counter((msg['returncode'] for msg in self.msgs))
+
+    def getDuration(self):
+        return currtimemillis() - self.timeCreated
+
+    def sumaryToPrettyString(self):
+        return '\n'.join((
+            "________________________________________________________________________________",
+            "   Stats after {}ms running:".format(self.getDuration()),
+            "        Messages     : {} ({} OK / {} errors)".format(self.msgsNumber(),
+                                                                   self.okNumber(),
+                                                                   self.errorsNumber()),
+            "        Process time : {} avg ({} max)".format(self.avgTimeToExecuted(),
+                                                            self.maxTimeToExecuted()),
+            "________________________________________________________________________________"
+        ))
+
+    def sumaryPrettyPrint(self):
+        print(self.sumaryToPrettyString())

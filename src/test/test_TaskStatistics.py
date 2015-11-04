@@ -96,6 +96,11 @@ class TestBashTasks(unittest.TestCase):
 
         self.assertEqual(stats.errorsNumber(), 1)
 
+    def test_okNumber(self):
+        stats = get_simple_experiment_stats()
+
+        self.assertEqual(stats.okNumber(), 2)
+
     def test_getWorkersCounter(self):
         stats = get_simple_experiment_stats()
 
