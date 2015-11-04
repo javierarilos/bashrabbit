@@ -36,6 +36,7 @@ class IntegTestPostTask(unittest.TestCase):
         rabbit_util.purge()
 
     def tearDown(self):
+        rabbit_util.purge()
         bashtasks_mod.reset()
 
     def test_post_task_sends_message(self):
@@ -72,6 +73,7 @@ class IntegTestExecuteTask(unittest.TestCase):
         rabbit_util.purge()
 
     def tearDown(self):
+        rabbit_util.purge()
         bashtasks_mod.reset()
 
     def test_execute_task_raises_on_timeout(self):

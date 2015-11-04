@@ -23,10 +23,10 @@ class DestinationNames:
     destination_providers = {
         Destination.responses_pool: lambda: TASK_RESPONSES_POOL,
         Destination.responses_exclusive: lambda: ':'.join((BASHTASKS, str(getpid()),
-                                                     gethostname(), RESPONSES)),
+                                                           gethostname(), RESPONSES)),
         Destination.requests_pool: lambda: TASK_REQUESTS_POOL,
         Destination.responses_exclusive: lambda: ':'.join((BASHTASKS, str(getpid()),
-                                                     gethostname(), REQUESTS))
+                                                           gethostname(), REQUESTS))
     }
 
     @classmethod

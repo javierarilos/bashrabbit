@@ -20,7 +20,6 @@ def post_task(command, reply_to=Destination.responses_pool):
         does NOT wait for response.
         :return: <dict> message created for the task.
     """
-    print('>>>>> posting task ', command)
 
     if reply_to is Destination.responses_exclusive:
         declare_and_bind(channel_inst, DestinationNames.get_for(reply_to))
