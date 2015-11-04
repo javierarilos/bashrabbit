@@ -42,8 +42,7 @@ class IntegTestPostTask(unittest.TestCase):
         bashtasks = bashtasks_mod.init()
         bashtasks.post_task(['ls', '-la'])
 
-        queue_name = TASK_REQUESTS_POOL
-        body = assertMessageInQueue(queue_name)
+        body = assertMessageInQueue(TASK_REQUESTS_POOL)
 
     def test_post_task_creates_correct_task_msg(self):
         ls_task = ['ls', '-la']
@@ -70,7 +69,7 @@ def kill_executor_process(p):
 @unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
 class IntegTestExecuteTask(unittest.TestCase):
     def setUp(self):
-        pass
+        rabbit_util.purge()
 
     def tearDown(self):
         bashtasks_mod.reset()
