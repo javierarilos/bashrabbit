@@ -26,8 +26,9 @@ def get_msg(request_ts=None, pre_command_ts=None, post_command_ts=None, returnco
 def get_simple_experiment_stats():
     stats = TaskStatistics()
     now = 1446628389719
-    # durations: 1000, 1700, 1500
+    # total durations: 1000, 1700, 1500
     # waiting: 100, 50, 150
+    # executing: 900, 1650, 1350
     msg1 = get_msg(request_ts=now, pre_command_ts=now+100, post_command_ts=now+1000,
                    executor_name=WRKR_ONE)
     msg2 = get_msg(request_ts=now+100, pre_command_ts=now+150, post_command_ts=now+1800,
@@ -84,8 +85,14 @@ class TestBashTasks(unittest.TestCase):
     def test_avgTimeWaiting(self):
         stats = get_simple_experiment_stats()
 
-        # duration of messages / nr of msgs => 1000 + 1700 + 1500 // 3
-        self.assertEqual(stats.avgTimeToExecuted(), 1400)
+        # (100 + 50 + 150) // 3
+        self.assertEqual(stats.avgTimeWaiting(), 100)
+
+    def test_avgExecutionTime(self):
+        stats = get_simple_experiment_stats()
+
+        # (900 + 1650 + 1350) // 3
+        self.assertEqual(stats.avgExecutionTime(), 1300)
 
     def test_maxTimetoExecuted(self):
         stats = get_simple_experiment_stats()

@@ -11,7 +11,11 @@ def time_post_to_executed(msg):
 
 
 def time_waiting(msg):
-    return msg['pre_command_ts'] - msg['post_command_ts']
+    return msg['pre_command_ts'] - msg['request_ts']
+
+
+def time_executing(msg):
+    return msg['post_command_ts'] - msg['pre_command_ts']
 
 
 class TaskStatistics:
@@ -32,6 +36,15 @@ class TaskStatistics:
         return sum(self.allTimesToExecuted())//len(self.msgs)
 
     def maxTimeToExecuted(self):
+        return max(self.allTimesToExecuted())
+
+    def allExecutionTimes(self):
+        return (time_executing(msg) for msg in self.msgs)
+
+    def avgExecutionTime(self):
+        return sum(self.allExecutionTimes())//len(self.msgs)
+
+    def maxExecutionTime(self):
         return max(self.allTimesToExecuted())
 
     def allTimesWaiting(self):
@@ -62,11 +75,14 @@ class TaskStatistics:
         return '\n'.join((
             "________________________________________________________________________________",
             "   Stats after {}ms running:".format(self.getDuration()),
-            "        Messages     : {} ({} OK / {} errors)".format(self.msgsNumber(),
-                                                                   self.okNumber(),
-                                                                   self.errorsNumber()),
-            "        Process time : {} avg ({} max)".format(self.avgTimeToExecuted(),
-                                                            self.maxTimeToExecuted()),
+            "        Messages        : {} ({} OK / {} errors)".format(self.msgsNumber(),
+                                                                      self.okNumber(),
+                                                                      self.errorsNumber()),
+            "        Execution time  : {} avg ({} max)".format(self.avgExecutionTime(),
+                                                               self.maxExecutionTime()),
+            "        Waiting times   : {} avg".format(self.avgTimeWaiting()),
+            "        Total task time : {} avg ({} max)".format(self.avgTimeToExecuted(),
+                                                               self.maxTimeToExecuted()),
             "________________________________________________________________________________"
         ))
 
