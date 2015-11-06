@@ -76,11 +76,14 @@ if __name__ == '__main__':
     parser.add_argument('--workers', default=1, dest='workers', type=int)
     parser.add_argument('--tasks', default=-1, dest='tasks_nr', type=int)
     args = parser.parse_args()
-
+    worker_ths = []
     for x in range(0, args.workers):
         worker_th = threading.Thread(target=start_executor,
                                      args=(args.host, args.usr, args.pas, args.tasks_nr),
                                      name='worker_th_' + str(x),
                                      daemon=True)
         worker_th.start()
+        worker_ths.append(worker_th)
+
+    for worker_th in worker_ths:
         worker_th.join()
