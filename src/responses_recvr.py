@@ -11,37 +11,43 @@ from socket import gethostname
 
 
 from bashtasks.rabbit_util import connect_and_declare
+from bashtasks import TaskStatistics
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
-pending_msgs_nr = -1  # pending_msgs_nr: -1 is infinite.
+pending_tasks = -1  # pending_tasks: -1 is infinite.
+stats = None
 
 
 def currtimemillis():
     return int(round(time.time() * 1000))
 
 
-def handle_response(ch, method, properties, body):
-    curr_th_name = threading.current_thread().name
-    body_str = body.decode('utf-8')
-    msg = json.loads(body_str)
-    print(">>>> response received: ", curr_th_name, "from queue ", TASK_RESPONSES_POOL,
-          " correlation_id: ", msg['correlation_id'])
+def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None):
 
-    total_time = currtimemillis() - msg['request_ts']
-    command_time = msg['post_command_ts'] - msg['pre_command_ts']
+    def count_message_processed():
+        global pending_tasks
+        pending_tasks = -1 if pending_tasks == -1 else pending_tasks - 1
 
-    print('--- total_time: {}ms command_time {}ms '.format(total_time, command_time))
+        if pending_tasks == 0:
+            print("Processed all messages... exiting.")
+            stats.sumaryPrettyPrint()
+            sys.exit()
+        else:  # pending_tasks < 0 -> infinite. > 0 is the nr msgs pending
+            print('-- still msgs_pending:', get_pending_nr())
 
-    print("<<<< response processed: ", curr_th_name, "response is:", msg)
-    count_msg_processed()
+    def handle_response(ch, method, properties, body):
+        msg = json.loads(body.decode('utf-8'))
+        print(">>>> response received: ", threading.current_thread().name,
+              "from queue ", TASK_RESPONSES_POOL,
+              " correlation_id: ", msg['correlation_id'],
+              " pending_msgs: ", get_pending_nr())
 
-    if processed_all_messages():
-        print("Processed all messages... exiting.")
-        sys.exit()
-    # ch.basic_ack(method.delivery_tag)
+        stats.trackMsg(msg)
 
+        ch.basic_ack(method.delivery_tag)
 
-def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest'):
+        count_message_processed()
+
     curr_th_name = threading.current_thread().name
     print(">> Starting receiver", curr_th_name, "connecting to rabbitmq:", host, usr, pas)
     consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
@@ -51,25 +57,17 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest'):
     consumer_channel.start_consuming()
 
 
-def count_msg_processed():
-    global pending_msgs_nr
-    pending_msgs_nr -= 1
-
-
-def processed_all_messages():
-    global pending_msgs_nr
-    if pending_msgs_nr == -1:
-        return False
-    else:
-        return pending_msgs_nr == 0
-
-
 def set_msgs_to_process(n):
-    global pending_msgs_nr
-    if n == 0:
-        pending_msgs_nr = -1
+    global pending_tasks
+    if n == 0:  # infinte
+        pending_tasks = -1
     else:
-        pending_msgs_nr = n
+        pending_tasks = n
+
+
+def get_pending_nr():
+    global pending_tasks
+    return pending_tasks
 
 
 if __name__ == '__main__':
@@ -79,13 +77,16 @@ if __name__ == '__main__':
     parser.add_argument('--user', default='guest', dest='usr')
     parser.add_argument('--pass', default='guest', dest='pas')
     parser.add_argument('--workers', default=1, dest='workers', type=int)
-    parser.add_argument('--msgs-nr', default=-1, dest='msgs_nr', type=int)
+    parser.add_argument('--tasks', default=-1, dest='tasks', type=int)
     args = parser.parse_args()
 
-    set_msgs_to_process(args.msgs_nr)
+    set_msgs_to_process(args.tasks)
+
+    global stats
+    stats = TaskStatistics()
 
     for x in range(0, args.workers):
         worker_th = threading.Thread(target=start_responses_recvr,
-                                     args=(args.host, args.usr, args.pas),
+                                     args=(args.host, args.usr, args.pas, stats),
                                      name='worker_th_' + str(x))
         worker_th.start()
