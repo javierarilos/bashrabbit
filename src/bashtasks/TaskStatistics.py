@@ -21,9 +21,11 @@ def time_executing(msg):
 class TaskStatistics:
     def __init__(self):
         self.msgs = []
-        self.timeCreated = currtimemillis()
+        self.firstMsgTs = 0
 
     def trackMsg(self, msg):
+        if not self.firstMsgTs:
+            self.firstMsgTs = currtimemillis()
         self.msgs.append(msg)
 
     def msgsNumber(self):
@@ -81,7 +83,7 @@ class TaskStatistics:
         return Counter((msg['returncode'] for msg in self.msgs))
 
     def getDuration(self):
-        return currtimemillis() - self.timeCreated
+        return currtimemillis() - self.firstMsgTs
 
     def sumaryToPrettyString(self):
         return '\n'.join((
