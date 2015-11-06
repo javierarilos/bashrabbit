@@ -49,7 +49,7 @@ def execute_task(command, reply_to=Destination.responses_pool, timeout=10):
             return json.loads(body.decode('utf-8'))
         else:
             if (datetime.now() - start_waiting).total_seconds() > timeout:
-                raise Exception('Timeout ({}secs) waiting for response 2 msg: {} in queue: "{}"'
+                raise Exception('Timeout ({}secs) waiting for response to msg: {} in queue: "{}"'
                                 .format(timeout, task['correlation_id'], reply_to))
             time.sleep(0.01)
 
