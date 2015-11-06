@@ -23,7 +23,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
         curr_th_name = threading.current_thread().name
         body_str = body.decode('utf-8')
         msg = json.loads(body_str)
-        print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL, " : ", msg)
+        print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL, " : correlation_id", msg['correlation_id'], "command: ", msg['command'])
         command = msg[u'command']
         pre_command_ts = currtimemillis()
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -50,6 +50,12 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
 
         nonlocal tasks_nr
         tasks_nr = tasks_nr - 1 if tasks_nr > 0 else tasks_nr
+        if response_msg['returncode'] != 0:
+            print('************************************************************ ERR ', response_msg['correlation_id'])
+            print('returncode:', response_msg['returncode'])
+            print('stdout:', response_msg['stdout'])
+            print('stderr:', response_msg['stderr'])
+            print('************************************************************')
         print("<<<< executed by: executor", curr_th_name, "correlation_id:",
               response_msg['correlation_id'], "pending:", tasks_nr)
         if tasks_nr == 0:
