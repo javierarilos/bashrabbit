@@ -11,10 +11,12 @@ def currtimemillis():
     return int(round(time.time() * 1000))
 
 
-def get_msg(request_ts=None, post_command_ts=None, returncode=0, executor_name='exec1'):
+def get_msg(request_ts=None, pre_command_ts=None, post_command_ts=None, returncode=0,
+            executor_name='exec1'):
     return {
             'correlation_id': time.time(),
             'request_ts': request_ts if request_ts else currtimemillis(),
+            'pre_command_ts': pre_command_ts if pre_command_ts else currtimemillis() + 200,
             'post_command_ts': post_command_ts if post_command_ts else currtimemillis() + 1000,
             'executor_name': executor_name,
             'returncode': returncode
@@ -25,11 +27,12 @@ def get_simple_experiment_stats():
     stats = TaskStatistics()
     now = 1446628389719
     # durations: 1000, 1700, 1500
-    msg1 = get_msg(request_ts=now, post_command_ts=now+1000,
+    # waiting: 100, 50, 150
+    msg1 = get_msg(request_ts=now, pre_command_ts=now+100, post_command_ts=now+1000,
                    executor_name=WRKR_ONE)
-    msg2 = get_msg(request_ts=now+100, post_command_ts=now+1800, returncode=err_code,
-                   executor_name=WRKR_TWO)
-    msg3 = get_msg(request_ts=now+200, post_command_ts=now+1700,
+    msg2 = get_msg(request_ts=now+100, pre_command_ts=now+150, post_command_ts=now+1800,
+                   returncode=err_code, executor_name=WRKR_TWO)
+    msg3 = get_msg(request_ts=now+200, pre_command_ts=now+350, post_command_ts=now+1700,
                    executor_name=WRKR_ONE)
 
     stats.trackMsg(msg1)
@@ -73,6 +76,12 @@ class TestBashTasks(unittest.TestCase):
         self.assertEqual(stats.msgsNumber(), 2)
 
     def test_avgTimeToExecuted(self):
+        stats = get_simple_experiment_stats()
+
+        # duration of messages / nr of msgs => 1000 + 1700 + 1500 // 3
+        self.assertEqual(stats.avgTimeToExecuted(), 1400)
+
+    def test_avgTimeWaiting(self):
         stats = get_simple_experiment_stats()
 
         # duration of messages / nr of msgs => 1000 + 1700 + 1500 // 3
