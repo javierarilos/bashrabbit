@@ -45,7 +45,7 @@ class TaskStatistics:
         return sum(self.allExecutionTimes())//len(self.msgs)
 
     def maxExecutionTime(self):
-        return max(self.allTimesToExecuted())
+        return max(self.allExecutionTimes())
 
     def allTimesWaiting(self):
         return (time_waiting(msg) for msg in self.msgs)
