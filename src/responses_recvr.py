@@ -78,12 +78,28 @@ if __name__ == '__main__':
     parser.add_argument('--pass', default='guest', dest='pas')
     parser.add_argument('--workers', default=1, dest='workers', type=int)
     parser.add_argument('--tasks', default=-1, dest='tasks', type=int)
+    parser.add_argument('--stats-interval', default=0, dest='stats_interval', type=int)
+
     args = parser.parse_args()
 
     set_msgs_to_process(args.tasks)
 
     global stats
     stats = TaskStatistics()
+
+    if args.stats_interval > 0:  # print stats every stats_interval seconds
+        print('>>>>> args.stats_interval', args.stats_interval)
+
+        def print_stats_every(interval):
+            while True:
+                time.sleep(interval)
+                stats.sumaryPrettyPrint()
+
+        stats_th = threading.Thread(target=print_stats_every,
+                                    args=(args.stats_interval,),
+                                    name='stats_th',
+                                    daemon=True)
+        stats_th.start()
 
     for x in range(0, args.workers):
         worker_th = threading.Thread(target=start_responses_recvr,

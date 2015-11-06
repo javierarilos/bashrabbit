@@ -82,11 +82,21 @@ class TestBashTasks(unittest.TestCase):
         # duration of messages / nr of msgs => 1000 + 1700 + 1500 // 3
         self.assertEqual(stats.avgTimeToExecuted(), 1400)
 
+    def test_empty_avgTimeToExecuted(self):
+        stats = TaskStatistics()
+
+        self.assertEqual(stats.avgTimeToExecuted(), 0)
+
     def test_avgTimeWaiting(self):
         stats = get_simple_experiment_stats()
 
         # (100 + 50 + 150) // 3
         self.assertEqual(stats.avgTimeWaiting(), 100)
+
+    def test_empty_avgTimeWaiting(self):
+        stats = TaskStatistics()
+
+        self.assertEqual(stats.avgTimeWaiting(), 0)
 
     def test_avgExecutionTime(self):
         stats = get_simple_experiment_stats()
@@ -94,10 +104,20 @@ class TestBashTasks(unittest.TestCase):
         # (900 + 1650 + 1350) // 3
         self.assertEqual(stats.avgExecutionTime(), 1300)
 
+    def test_empty_avgExecutionTime(self):
+        stats = TaskStatistics()
+
+        self.assertEqual(stats.avgExecutionTime(), 0)
+
     def test_maxTimetoExecuted(self):
         stats = get_simple_experiment_stats()
 
         self.assertEqual(stats.maxTimeToExecuted(), 1700)
+
+    def test_empty_maxTimetoExecuted(self):
+        stats = TaskStatistics()
+
+        self.assertEqual(stats.maxTimeToExecuted(), 0)
 
     def test_allErrors(self):
         stats = get_simple_experiment_stats()

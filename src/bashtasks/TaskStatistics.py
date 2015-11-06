@@ -33,25 +33,37 @@ class TaskStatistics:
         return (time_post_to_executed(msg) for msg in self.msgs)
 
     def avgTimeToExecuted(self):
-        return sum(self.allTimesToExecuted())//len(self.msgs)
+        aggregated_time_to_executed = sum(self.allTimesToExecuted())
+        if aggregated_time_to_executed:
+            return aggregated_time_to_executed//len(self.msgs)
+        else:
+            return 0
 
     def maxTimeToExecuted(self):
-        return max(self.allTimesToExecuted())
+        return max(self.allTimesToExecuted(), default=0)
 
     def allExecutionTimes(self):
         return (time_executing(msg) for msg in self.msgs)
 
     def avgExecutionTime(self):
-        return sum(self.allExecutionTimes())//len(self.msgs)
+        aggregated_execution_time = sum(self.allExecutionTimes())
+        if aggregated_execution_time:
+            return aggregated_execution_time//len(self.msgs)
+        else:
+            return 0
 
     def maxExecutionTime(self):
-        return max(self.allExecutionTimes())
+        return max(self.allExecutionTimes(), default=0)
 
     def allTimesWaiting(self):
         return (time_waiting(msg) for msg in self.msgs)
 
     def avgTimeWaiting(self):
-        return sum(self.allTimesWaiting())//len(self.msgs)
+        aggregated_time_waiting = sum(self.allTimesWaiting())
+        if aggregated_time_waiting:
+            return aggregated_time_waiting//len(self.msgs)
+        else:
+            return 0
 
     def allErrors(self):
         return [msg for msg in self.msgs if msg['returncode'] != 0]
