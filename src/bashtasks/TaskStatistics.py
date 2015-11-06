@@ -102,3 +102,19 @@ class TaskStatistics:
 
     def sumaryPrettyPrint(self):
         print(self.sumaryToPrettyString())
+
+    def toCsv(self, filepath):
+        fields = (
+            "request_ts",
+            "correlation_id",
+            "pre_command_ts",
+            "post_command_ts",
+            "returncode",
+            "command"
+        )
+        with open(filepath, 'w') as f:
+            headers = ';'.join((fields)) + '\n'
+            f.write(headers)
+            for msg in self.msgs:
+                csv_msg = ";".join((str(msg[field]) for field in fields)) + '\n'
+                f.write(csv_msg)

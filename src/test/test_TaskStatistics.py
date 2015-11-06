@@ -19,7 +19,15 @@ def get_msg(request_ts=None, pre_command_ts=None, post_command_ts=None, returnco
             'pre_command_ts': pre_command_ts if pre_command_ts else currtimemillis() + 200,
             'post_command_ts': post_command_ts if post_command_ts else currtimemillis() + 1000,
             'executor_name': executor_name,
-            'returncode': returncode
+            'returncode': returncode,
+            'command': 'docker exec -t blahblah /opt/bashtasks/execute_task.py --no-wait '
+                       '--host $RABBIT_HOST --user $RABBIT_USER --pass $RABBIT_PASS '
+                       '--command "docker run -v /var/run/docker.sock:/var/run/docker.sock '
+                       '-v /speech-ava-audio-raw:/speech-ava-audio-raw '
+                       '-v /speech-ava-audio-pcm:/speech-ava-audio-pcm '
+                       '-v /speech-ava-feats:/speech-ava-feats '
+                       'artifactory.hi.inet/speech-ava/ava_pipeline:latest '
+                       '/opt/ava_pipeline/AVA_pipeline $x"'
     }
 
 
@@ -152,3 +160,8 @@ class TestBashTasks(unittest.TestCase):
 
         self.assertEqual(return_codes_counter[0], 2)
         self.assertEqual(return_codes_counter[err_code], 1)
+
+    def test_toCsv(self):
+        stats = get_simple_experiment_stats()
+
+        stats.toCsv('/tmp/TaskStatisticsTest.csv')
