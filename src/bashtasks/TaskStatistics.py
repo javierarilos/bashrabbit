@@ -9,6 +9,7 @@ def currtimemillis():
 def time_post_to_executed(msg):
     return msg['post_command_ts'] - msg['request_ts']
 
+
 def time_waiting(msg):
     return msg['pre_command_ts'] - msg['post_command_ts']
 
@@ -30,14 +31,14 @@ class TaskStatistics:
     def avgTimeToExecuted(self):
         return sum(self.allTimesToExecuted())//len(self.msgs)
 
+    def maxTimeToExecuted(self):
+        return max(self.allTimesToExecuted())
+
     def allTimesWaiting(self):
         return (time_waiting(msg) for msg in self.msgs)
 
     def avgTimeWaiting(self):
         return sum(self.allTimesWaiting())//len(self.msgs)
-
-    def maxTimeToExecuted(self):
-        return max(self.allTimesToExecuted())
 
     def allErrors(self):
         return [msg for msg in self.msgs if msg['returncode'] != 0]
