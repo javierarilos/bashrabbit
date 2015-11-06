@@ -1,4 +1,5 @@
 from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
+import pika
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 
@@ -31,9 +32,11 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest'):
 def purge(host='localhost', usr='guest', pas='guest'):
     conn = connect(host=host, usr=usr, pas=pas)
     ch = conn.channel()
-
-    ch.queue_purge(queue=TASK_REQUESTS_POOL)
-    ch.queue_purge(queue=TASK_RESPONSES_POOL)
+    try:
+        ch.queue_purge(queue=TASK_REQUESTS_POOL)
+        ch.queue_purge(queue=TASK_RESPONSES_POOL)
+    except pika.exceptions.ChannelClosed as e:
+        print('Not an error if this is a Test. Purging queues exception:', e)
 
 
 def is_rabbit_available(host='localhost', usr='guest', pas='guest'):
