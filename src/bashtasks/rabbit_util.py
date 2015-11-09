@@ -13,6 +13,13 @@ def connect(host='localhost', usr='guest', pas='guest'):
     return conn
 
 
+def close_channel_and_conn(ch):
+    if ch.is_open:
+        ch.close()
+    if ch._impl.is_open:
+        ch._impl.close()
+
+
 def declare_and_bind(ch, name, routing_key=''):
     ch.exchange_declare(exchange=name, type='direct')
     ch.queue_declare(queue=name)
@@ -35,6 +42,8 @@ def purge(host='localhost', usr='guest', pas='guest'):
     try:
         ch.queue_purge(queue=TASK_REQUESTS_POOL)
         ch.queue_purge(queue=TASK_RESPONSES_POOL)
+        ch.close()
+        conn.close()
     except pika.exceptions.ChannelClosed as e:
         print('Not an error if this is a Test. Purging queues exception:', e)
 

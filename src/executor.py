@@ -10,7 +10,7 @@ import threading
 from socket import gethostname
 
 
-from bashtasks.rabbit_util import connect_and_declare
+from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 
@@ -60,7 +60,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
               response_msg['correlation_id'], "pending:", tasks_nr)
         if tasks_nr == 0:
             print('==== no more tasks to execute. Exiting.')
-            ch.close()
+            close_channel_and_conn(ch)
             sys.exit(0)
 
     curr_th_name = threading.current_thread().name

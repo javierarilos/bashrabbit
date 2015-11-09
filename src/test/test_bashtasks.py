@@ -12,7 +12,17 @@ import executor
 unavailable_rabbit = not rabbit_util.is_rabbit_available()
 
 
+class FakeConnection:
+    is_open = False
+
+    def close(*args, **kwargs):
+        pass
+
+
 class FakeChannel:
+    _impl = FakeConnection()
+    is_open = False
+
     def close(*args, **kwargs):
         pass
 

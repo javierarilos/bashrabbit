@@ -6,7 +6,7 @@ from datetime import datetime
 
 from bashtasks.constants import TASK_RESPONSES_POOL, TASK_REQUESTS_POOL
 from bashtasks.constants import Destination, DestinationNames
-from bashtasks.rabbit_util import connect_and_declare, declare_and_bind
+from bashtasks.rabbit_util import connect_and_declare, declare_and_bind, close_channel_and_conn
 
 channel_inst = None
 
@@ -76,5 +76,5 @@ def reset():
 
     global channel_inst
     if channel_inst is not None:
-        channel_inst.close()
+        close_channel_and_conn(channel_inst)
         channel_inst = None
