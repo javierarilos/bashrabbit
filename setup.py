@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='bashtasks',
       version='0.2',
-      description='execute bash tasks remotely',
+      description='Execute bash commands remotely, using a competing consumer model.',
       author='Javier Arias',
       author_email='javier.arilos@gmail.com',
       url='https://github.com/javierarilos/bashtasks.git',
-      packages=['bashtasks']
+      packages=['bashtasks'],
+      package_dir={'bashtasks': 'src/bashtasks'},
+      install_requires=['pika'],
 )
