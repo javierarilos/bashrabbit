@@ -16,6 +16,11 @@ parser.add_argument('--pass', default='guest', dest='pas')
 parser.add_argument('--no-wait', default=False, action='store_true', dest='fire_and_forget')
 parser.add_argument('--command', required=True, dest='command',
                     metavar='"COMMAND" to execute. Better wrapped with quotes (")')
+
+if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit(1)
+
 args = parser.parse_args()
 args.command = args.command.split()
 

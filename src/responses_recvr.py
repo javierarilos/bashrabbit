@@ -84,6 +84,10 @@ if __name__ == '__main__':
     parser.add_argument('--stats-interval', default=0, dest='stats_interval', type=int)
     parser.add_argument('--csv', default=None, dest='stats_csv_filename')
 
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
     args = parser.parse_args()
 
     set_msgs_to_process(args.tasks)

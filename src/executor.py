@@ -81,6 +81,11 @@ if __name__ == '__main__':
     parser.add_argument('--pass', default='guest', dest='pas')
     parser.add_argument('--workers', default=1, dest='workers', type=int)
     parser.add_argument('--tasks', default=-1, dest='tasks_nr', type=int)
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
     args = parser.parse_args()
     worker_ths = []
     for x in range(0, args.workers):
