@@ -35,6 +35,7 @@ def create_response_for(msg):
         'executor_name': get_executor_name()
     }
 
+
 def send_response(response_msg, ch):
     response_str = json.dumps(response_msg)
     ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
@@ -45,7 +46,8 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
         curr_th_name = threading.current_thread().name
         body_str = body.decode('utf-8')
         msg = json.loads(body_str)
-        print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL, " : correlation_id", msg['correlation_id'], "command: ", msg['command'])
+        print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL,
+              " : correlation_id", msg['correlation_id'], "command: ", msg['command'])
         response_msg = create_response_for(msg)
         response_msg['pre_command_ts'] = currtimemillis()
         try:
@@ -58,7 +60,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             response_msg['stderr'] = e.decode('utf-8')
 
         except Exception as exc:
-            print('========== got exception for : correlation_id', response_msg['correlation_id'], exc)
+            print('==== got exception for : correlation_id', response_msg['correlation_id'], exc)
             response_msg['post_command_ts'] = currtimemillis()
             response_msg['returncode'] = -3791
             response_msg['stdout'] = 'Exception trying to execute command.'
@@ -71,11 +73,11 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
         nonlocal tasks_nr
         tasks_nr = tasks_nr - 1 if tasks_nr > 0 else tasks_nr
         if response_msg['returncode'] != 0:
-            print('************************************************************ ERR ', response_msg['correlation_id'])
+            print('****************************************** ERR ', response_msg['correlation_id'])
             print('returncode:', response_msg['returncode'])
             print('stdout:', response_msg['stdout'])
             print('stderr:', response_msg['stderr'])
-            print('************************************************************')
+            print('******************************************')
 
         print("<<<< executed by: executor", curr_th_name, "correlation_id:",
               response_msg['correlation_id'], "pending:", tasks_nr)
