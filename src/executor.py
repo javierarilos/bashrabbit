@@ -10,7 +10,6 @@ import os
 import threading
 from socket import gethostname
 
-
 from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
@@ -23,6 +22,10 @@ def get_executor_name():
     return ":".join((gethostname(), str(os.getpid()), threading.current_thread().name))
 
 
+def get_thread_name():
+    return 'worker_th_' + str(x)
+
+
 def create_response_for(msg):
     return {
         'correlation_id': msg['correlation_id'],
@@ -32,12 +35,12 @@ def create_response_for(msg):
         'executor_name': get_executor_name()
     }
 
-def send_response(response_msg):
+def send_response(response_msg, ch):
     response_str = json.dumps(response_msg)
     ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
 
 
-def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
+def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_retries=0):
     def handle_command_request(ch, method, properties, body):
         curr_th_name = threading.current_thread().name
         body_str = body.decode('utf-8')
@@ -62,7 +65,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
             response_msg['stderr'] = repr(exc)
 
         finally:
-            send_response(response_msg)
+            send_response(response_msg, ch)
             ch.basic_ack(method.delivery_tag)
 
         nonlocal tasks_nr
@@ -109,8 +112,9 @@ if __name__ == '__main__':
     worker_ths = []
     for x in range(0, args.workers):
         worker_th = threading.Thread(target=start_executor,
-                                     args=(args.host, args.usr, args.pas, args.tasks_nr),
-                                     name='worker_th_' + str(x),
+                                     args=(args.host, args.usr, args.pas,
+                                           args.tasks_nr, args.max_retries),
+                                     name=get_thread_name(),
                                      daemon=True)
         worker_th.start()
         worker_ths.append(worker_th)
