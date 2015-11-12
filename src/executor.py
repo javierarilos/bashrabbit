@@ -32,6 +32,10 @@ def create_response_for(msg):
         'executor_name': get_executor_name()
     }
 
+def send_response(response_msg):
+    response_str = json.dumps(response_msg)
+    ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
+
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
     def handle_command_request(ch, method, properties, body):
@@ -58,8 +62,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
             response_msg['stderr'] = repr(exc)
 
         finally:
-            response_str = json.dumps(response_msg)
-            ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
+            send_response(response_msg)
             ch.basic_ack(method.delivery_tag)
 
         nonlocal tasks_nr
@@ -96,6 +99,7 @@ if __name__ == '__main__':
     parser.add_argument('--pass', default='guest', dest='pas')
     parser.add_argument('--workers', default=1, dest='workers', type=int)
     parser.add_argument('--tasks', default=-1, dest='tasks_nr', type=int)
+    parser.add_argument('--max-retries', default=0, dest='max_retries', type=int)
 
     if len(sys.argv) == 1:
         parser.print_help()
