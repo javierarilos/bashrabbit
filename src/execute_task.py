@@ -44,6 +44,7 @@ print('=========================================================================
 print("received response: returncode : " + str(response_msg['returncode']))
 print("                   command    : " + ' '.join(response_msg['command']))
 print("                   executor   : " + response_msg['executor_name'])
+print("                   retries    : " + str(response_msg['retries']))
 if response_msg['returncode'] != 0:
     print("                   stderr     : ")
     print('_______________________________________________________________________________________')
