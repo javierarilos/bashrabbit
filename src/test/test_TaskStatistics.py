@@ -9,14 +9,14 @@ WRKR_TWO = 'two2'
 
 TEST_FILE = '/tmp/TaskStatisticsTest.csv'
 
+
 def currtimemillis():
     return int(round(time.time() * 1000))
 
 
 def get_msg(request_ts=None, pre_command_ts=None, post_command_ts=None, returncode=0,
             executor_name='exec1'):
-    return {
-            'correlation_id': time.time(),
+    return {'correlation_id': time.time(),
             'request_ts': request_ts if request_ts else currtimemillis(),
             'pre_command_ts': pre_command_ts if pre_command_ts else currtimemillis() + 200,
             'post_command_ts': post_command_ts if post_command_ts else currtimemillis() + 1000,
@@ -30,11 +30,12 @@ def get_msg(request_ts=None, pre_command_ts=None, post_command_ts=None, returnco
                        '-v /speech-ava-feats:/speech-ava-feats '
                        'artifactory.hi.inet/speech-ava/ava_pipeline:latest '
                        '/opt/ava_pipeline/AVA_pipeline $x"'
-    }
+            }
 
 
 def get_simple_experiment_stats(csvAuto=False, csvFileName=TEST_FILE, csvPersistenceRatio=0.2):
-    stats = TaskStatistics(csvAuto=csvAuto, csvFileName=csvFileName, csvPersistenceRatio=csvPersistenceRatio)
+    stats = TaskStatistics(csvAuto=csvAuto, csvFileName=csvFileName,
+                           csvPersistenceRatio=csvPersistenceRatio)
     now = 1446628389719
     # total durations: 1000, 1700, 1500
     # waiting: 100, 50, 150
@@ -166,8 +167,9 @@ class TestBashTasks(unittest.TestCase):
 
 def readlines(filepath):
     with open(filepath, "r") as myfile:
-        data=myfile.readlines()
+        data = myfile.readlines()
     return data
+
 
 class TestBashTasksCsvStats(unittest.TestCase):
     def setUp(self):
@@ -205,9 +207,9 @@ class TestBashTasksCsvStats(unittest.TestCase):
 
         self.assertLinesWithStats(lines, stats)
 
-
     def test_csvAutoSave(self):
-        stats = get_simple_experiment_stats(csvAuto=True, csvFileName=TEST_FILE, csvPersistenceRatio=0.99)
+        stats = get_simple_experiment_stats(csvAuto=True, csvFileName=TEST_FILE,
+                                            csvPersistenceRatio=0.99)
 
         stats.closeCsvFile()
 
