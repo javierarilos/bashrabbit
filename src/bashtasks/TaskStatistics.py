@@ -1,5 +1,6 @@
 import time
 from collections import Counter
+from random import random
 
 
 def currtimemillis():
@@ -17,11 +18,29 @@ def time_waiting(msg):
 def time_executing(msg):
     return msg['post_command_ts'] - msg['pre_command_ts']
 
+csv_fields = (
+    "request_ts",
+    "correlation_id",
+    "pre_command_ts",
+    "post_command_ts",
+    "returncode",
+    "command"
+)
+
+DEFAULT_CSV = 'stats_bashtasks.csv'
 
 class TaskStatistics:
-    def __init__(self):
+    def __init__(self, csvAuto=False, csvFileName=DEFAULT_CSV, csvPersistenceRatio=0.2):
         self.msgs = []
         self.firstMsgTs = 0
+        self.csvAuto = csvAuto
+        self.csvFileName = csvFileName
+        self.csvFile = None  # lazy initialized
+        self.csvPersistenceRatio = csvPersistenceRatio
+
+    @staticmethod
+    def csvFields():
+        return csv_fields
 
     def trackMsg(self, msg):
         if not self.firstMsgTs:
@@ -103,18 +122,35 @@ class TaskStatistics:
     def sumaryPrettyPrint(self):
         print(self.sumaryToPrettyString())
 
-    def toCsv(self, filepath):
-        fields = (
-            "request_ts",
-            "correlation_id",
-            "pre_command_ts",
-            "post_command_ts",
-            "returncode",
-            "command"
-        )
-        with open(filepath, 'w') as f:
-            headers = ';'.join((fields)) + '\n'
-            f.write(headers)
-            for msg in self.msgs:
-                csv_msg = ";".join((str(msg[field]) for field in fields)) + '\n'
-                f.write(csv_msg)
+    def getCsvFile(self, filepath=None):
+        if self.csvFile:
+            return self.csvFile
+
+        if not self.csvFile and not filepath:
+            raise Exception('File not initialized, and no filepath provided.')
+
+        self.csvFile = open(filepath, 'w')
+        return self.csvFile
+
+    def closeCsvFile(self):
+        if self.csvFile:
+            self.csvFile.close()
+
+    def writeCsvHeaders(self, filepath=None):
+        headers = ';'.join((csv_fields)) + '\n'
+        f = self.getCsvFile(filepath)
+        f.write(headers)
+
+    def writeCsvMessage(self, msg, filepath=None):
+        csv_msg = ";".join((str(msg[field]) for field in csv_fields)) + '\n'
+        f = self.getCsvFile(filepath)
+        f.write(csv_msg)
+        if random() < self.csvPersistenceRatio:
+            f.flush()
+
+    def toCsv(self, csv_file=None):
+        csv_file = csv_file if csv_file else self.csvFileName
+        self.writeCsvHeaders(csv_file)
+        for msg in self.msgs:
+            self.writeCsvMessage(msg)
+        self.closeCsvFile()

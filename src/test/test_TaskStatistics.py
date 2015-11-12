@@ -1,11 +1,13 @@
 import unittest
 from bashtasks import TaskStatistics
 import time
+import os
 
 err_code = 7
 WRKR_ONE = 'one1'
 WRKR_TWO = 'two2'
 
+TEST_FILE = '/tmp/TaskStatisticsTest.csv'
 
 def currtimemillis():
     return int(round(time.time() * 1000))
@@ -31,8 +33,8 @@ def get_msg(request_ts=None, pre_command_ts=None, post_command_ts=None, returnco
     }
 
 
-def get_simple_experiment_stats():
-    stats = TaskStatistics()
+def get_simple_experiment_stats(csvAuto=False, csvFileName=TEST_FILE, csvPersistenceRatio=0.2):
+    stats = TaskStatistics(csvAuto=csvAuto, csvFileName=csvFileName, csvPersistenceRatio=csvPersistenceRatio)
     now = 1446628389719
     # total durations: 1000, 1700, 1500
     # waiting: 100, 50, 150
@@ -161,7 +163,44 @@ class TestBashTasks(unittest.TestCase):
         self.assertEqual(return_codes_counter[0], 2)
         self.assertEqual(return_codes_counter[err_code], 1)
 
+
+def readlines(filepath):
+    with open(filepath, "r") as myfile:
+        data=myfile.readlines()
+    return data
+
+class TestBashTasksCsvStats(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        if os.path.isfile(TEST_FILE):
+            os.remove(TEST_FILE)
+
+    def assertLinesWithStats(self, lines, stats):
+        # lines in file should be msgsNumber + 1 (headers)
+        self.assertEqual(len(lines), stats.msgsNumber() + 1)
+
+        # check headers correspond to TaskStatistics.csvFields()
+        fileHeaders = map(str.strip, lines[0].split(';'))
+        for fileHeader, statsHeader in zip(fileHeaders, stats.csvFields()):
+            self.assertEqual(fileHeader, statsHeader)
+
+        # check some fields for all lines
+        for msg, line in zip(stats.msgs, lines[1:]):
+            splitted_line = line.split(';')
+            line_request_ts = splitted_line[0]
+            line_correlation_id = splitted_line[1]
+            line_returncode = splitted_line[4]
+            self.assertEqual(msg['request_ts'], int(line_request_ts))
+            self.assertEqual(str(msg['correlation_id']), line_correlation_id)
+            self.assertEqual(msg['returncode'], int(line_returncode))
+
     def test_toCsv(self):
         stats = get_simple_experiment_stats()
 
-        stats.toCsv('/tmp/TaskStatisticsTest.csv')
+        stats.toCsv(csv_file=TEST_FILE)
+
+        lines = readlines(TEST_FILE)
+
+        self.assertLinesWithStats(lines, stats)
