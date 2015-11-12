@@ -42,15 +42,17 @@ def send_response(response_msg, ch):
 
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_retries=0):
+    curr_th_name = threading.current_thread().name
+
     def handle_command_request(ch, method, properties, body):
-        curr_th_name = threading.current_thread().name
-        body_str = body.decode('utf-8')
-        msg = json.loads(body_str)
+        msg = json.loads(body.decode('utf-8'))
         print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL,
               " : correlation_id", msg['correlation_id'], "command: ", msg['command'])
-        response_msg = create_response_for(msg)
-        response_msg['pre_command_ts'] = currtimemillis()
+
         try:
+            response_msg = create_response_for(msg)
+            response_msg['pre_command_ts'] = currtimemillis()
+
             p = subprocess.Popen(msg['command'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             o, e = p.communicate()
 
@@ -86,7 +88,6 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             close_channel_and_conn(ch)
             sys.exit(0)
 
-    curr_th_name = threading.current_thread().name
     print(">> Starting executor", curr_th_name, "connecting to rabbitmq:", host, usr, pas,
           "executing", tasks_nr, "tasks.")
     consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
