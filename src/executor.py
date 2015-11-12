@@ -32,17 +32,37 @@ def create_response_for(msg):
         'reply_to': msg['reply_to'],
         'command': msg['command'],
         'request_ts': msg['request_ts'],
-        'executor_name': get_executor_name()
+        'executor_name': get_executor_name(),
+        'retries': msg.get('retries', 0)
     }
-
-
-def send_response(response_msg, ch):
-    response_str = json.dumps(response_msg)
-    ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
 
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_retries=0):
     curr_th_name = threading.current_thread().name
+    print(">> Starting executor", curr_th_name, "connecting to rabbitmq:", host, usr, pas,
+          "executing", tasks_nr, "tasks.")
+
+    ch = connect_and_declare(host=host, usr=usr, pas=pas)
+    ch.basic_qos(prefetch_count=1)  # consume msgs one at a time
+
+    def should_retry(response_msg):
+        is_error = response_msg['returncode'] != 0
+        current_retries = response_msg.get('retries', 0)
+        retries_pending = current_retries < max_retries
+        return is_error and retries_pending
+
+    def send_response(response_msg):
+        if should_retry(response_msg):
+            print('---- retrying msg correlation_id: {} '
+                  'current_retries: {}'
+                  .format(response_msg['correlation_id'], response_msg['retries']))
+            tgt_exch = TASK_REQUESTS_POOL
+            response_msg['retries'] += 1
+        else:
+            tgt_exch = TASK_RESPONSES_POOL
+
+        response_str = json.dumps(response_msg)
+        ch.basic_publish(exchange=tgt_exch, routing_key='', body=response_str)
 
     def handle_command_request(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
@@ -69,7 +89,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             response_msg['stderr'] = repr(exc)
 
         finally:
-            send_response(response_msg, ch)
+            send_response(response_msg)
             ch.basic_ack(method.delivery_tag)
 
         nonlocal tasks_nr
@@ -88,13 +108,9 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             close_channel_and_conn(ch)
             sys.exit(0)
 
-    print(">> Starting executor", curr_th_name, "connecting to rabbitmq:", host, usr, pas,
-          "executing", tasks_nr, "tasks.")
-    consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
-    consumer_channel.basic_qos(prefetch_count=1)  # consume msgs one at a time
-    consumer_channel.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
+    ch.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
     print("<< Ready: executor", curr_th_name, "connected to rabbitmq:", host, usr, pas)
-    consumer_channel.start_consuming()
+    ch.start_consuming()
 
 
 if __name__ == '__main__':
