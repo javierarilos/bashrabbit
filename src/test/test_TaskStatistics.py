@@ -204,3 +204,13 @@ class TestBashTasksCsvStats(unittest.TestCase):
         lines = readlines(TEST_FILE)
 
         self.assertLinesWithStats(lines, stats)
+
+
+    def test_csvAutoSave(self):
+        stats = get_simple_experiment_stats(csvAuto=True, csvFileName=TEST_FILE, csvPersistenceRatio=0.99)
+
+        stats.closeCsvFile()
+
+        lines = readlines(TEST_FILE)
+
+        self.assertLinesWithStats(lines, stats)

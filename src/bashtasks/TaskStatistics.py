@@ -43,9 +43,16 @@ class TaskStatistics:
         return csv_fields
 
     def trackMsg(self, msg):
+        self.msgs.append(msg)
+
         if not self.firstMsgTs:
             self.firstMsgTs = currtimemillis()
-        self.msgs.append(msg)
+            if self.csvAuto:
+                self.writeCsvHeaders(filepath=self.csvFileName)
+
+        if self.csvAuto:
+            self.writeCsvMessage(msg, filepath=self.csvFileName)        
+
 
     def msgsNumber(self):
         return len(self.msgs)
@@ -126,8 +133,7 @@ class TaskStatistics:
         if self.csvFile:
             return self.csvFile
 
-        if not self.csvFile and not filepath:
-            raise Exception('File not initialized, and no filepath provided.')
+        filepath = filepath if filepath else self.csvFileName
 
         self.csvFile = open(filepath, 'w')
         return self.csvFile
