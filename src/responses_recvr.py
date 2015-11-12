@@ -31,9 +31,7 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None
         if pending_tasks == 0:
             print("Processed all messages... exiting.")
             stats.sumaryPrettyPrint()
-            global args
-            if args.stats_csv_filename:
-                stats.toCsv(args.stats_csv_filename)
+            stats.closeCsvFile()
             sys.exit()
         else:  # pending_tasks < 0 -> infinite. > 0 is the nr msgs pending
             print('-- still msgs_pending:', get_pending_nr())
@@ -93,7 +91,7 @@ if __name__ == '__main__':
     set_msgs_to_process(args.tasks)
 
     global stats
-    stats = TaskStatistics()
+    stats = TaskStatistics(csvAuto=True, csvFileName=args.stats_csv_filename)
 
     if args.stats_interval > 0:  # print stats every stats_interval seconds
         print('>>>>> args.stats_interval', args.stats_interval)
