@@ -6,6 +6,7 @@ import subprocess
 import sys
 import json
 import time
+import os
 import threading
 from socket import gethostname
 
@@ -18,35 +19,48 @@ def currtimemillis():
     return int(round(time.time() * 1000))
 
 
+def get_executor_name():
+    return ":".join((gethostname(), str(os.getpid()), threading.current_thread().name))
+
+
+def create_response_for(msg):
+    return {
+        'correlation_id': msg['correlation_id'],
+        'reply_to': msg['reply_to'],
+        'command': msg['command'],
+        'request_ts': msg['request_ts'],
+        'executor_name': get_executor_name()
+    }
+
+
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
     def handle_command_request(ch, method, properties, body):
         curr_th_name = threading.current_thread().name
         body_str = body.decode('utf-8')
         msg = json.loads(body_str)
         print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL, " : correlation_id", msg['correlation_id'], "command: ", msg['command'])
-        command = msg[u'command']
-        pre_command_ts = currtimemillis()
-        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        o, e = p.communicate()
-        post_command_ts = currtimemillis()
+        response_msg = create_response_for(msg)
+        response_msg['pre_command_ts'] = currtimemillis()
+        try:
+            p = subprocess.Popen(msg['command'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            o, e = p.communicate()
 
-        response_msg = {
-            'correlation_id': msg['correlation_id'],
-            'reply_to': msg['reply_to'],
-            'command': msg['command'],
-            'request_ts': msg['request_ts'],
-            'pre_command_ts': pre_command_ts,
-            'post_command_ts': post_command_ts,
-            'returncode': p.returncode,
-            'executor_name': gethostname(),
-            'stdout': o.decode('utf-8'),
-            'stderr': e.decode('utf-8')
-        }
+            response_msg['post_command_ts'] = currtimemillis()
+            response_msg['returncode'] = p.returncode
+            response_msg['stdout'] = o.decode('utf-8')
+            response_msg['stderr'] = e.decode('utf-8')
 
-        response_str = json.dumps(response_msg)
+        except Exception as exc:
+            print('========== got exception for : correlation_id', response_msg['correlation_id'], exc)
+            response_msg['post_command_ts'] = currtimemillis()
+            response_msg['returncode'] = -3791
+            response_msg['stdout'] = 'Exception trying to execute command.'
+            response_msg['stderr'] = repr(exc)
 
-        ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
-        ch.basic_ack(method.delivery_tag)
+        finally:
+            response_str = json.dumps(response_msg)
+            ch.basic_publish(exchange=TASK_RESPONSES_POOL, routing_key='', body=response_str)
+            ch.basic_ack(method.delivery_tag)
 
         nonlocal tasks_nr
         tasks_nr = tasks_nr - 1 if tasks_nr > 0 else tasks_nr
@@ -56,6 +70,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1):
             print('stdout:', response_msg['stdout'])
             print('stderr:', response_msg['stderr'])
             print('************************************************************')
+
         print("<<<< executed by: executor", curr_th_name, "correlation_id:",
               response_msg['correlation_id'], "pending:", tasks_nr)
         if tasks_nr == 0:
