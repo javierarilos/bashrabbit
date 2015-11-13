@@ -29,6 +29,7 @@ csv_fields = (
 
 DEFAULT_CSV = 'stats_bashtasks.csv'
 
+
 class TaskStatistics:
     def __init__(self, csvAuto=False, csvFileName=DEFAULT_CSV, csvPersistenceRatio=0.2):
         self.msgs = []
@@ -51,7 +52,7 @@ class TaskStatistics:
                 self.writeCsvHeaders(filepath=self.csvFileName)
 
         if self.csvAuto:
-            self.writeCsvMessage(msg, filepath=self.csvFileName)        
+            self.writeCsvMessage(msg, filepath=self.csvFileName)
 
 
     def msgsNumber(self):
