@@ -12,7 +12,9 @@ from socket import gethostname
 
 
 from bashtasks.rabbit_util import connect_and_declare
+
 from bashtasks import TaskStatistics
+from bashtasks import init_subscriber
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 pending_tasks = -1  # pending_tasks: -1 is infinite.
@@ -40,7 +42,6 @@ def init_dir(dir):
 
 
 def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None, err_dir=None):
-    init_dir(err_dir)
 
     def count_message_processed():
         global pending_tasks
@@ -75,12 +76,11 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None
         count_message_processed()
 
     curr_th_name = threading.current_thread().name
+
     print(">> Starting receiver", curr_th_name, "connecting to rabbitmq:", host, usr, pas)
-    consumer_channel = connect_and_declare(host=host, usr=usr, pas=pas)
-    consumer_channel.basic_qos(prefetch_count=1)  # consume msgs one at a time
-    consumer_channel.basic_consume(handle_response, queue=TASK_RESPONSES_POOL, no_ack=False)
-    print("<< Ready: receiver", curr_th_name, "connected to rabbitmq:", host, usr, pas)
-    consumer_channel.start_consuming()
+
+    subscriber = init_subscriber(host=host, usr=usr, pas=pas)
+    subscriber.subscribe(handle_response)
 
 
 def set_msgs_to_process(n):
@@ -117,6 +117,11 @@ if __name__ == '__main__':
     set_msgs_to_process(args.tasks)
 
     csvAutoSave = args.stats_csv_filename is not None
+
+    if args.err_dir:
+        init_dir(args.err_dir)
+    if args.stats_csv_filename:
+        init_dir(os.path.dirname(args.stats_csv_filename))
 
     global stats
     stats = TaskStatistics(csvAuto=csvAutoSave, csvFileName=args.stats_csv_filename)

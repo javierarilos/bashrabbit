@@ -61,10 +61,10 @@ class BashTasks:
 def init(host='127.0.0.1', usr='guest', pas='guest', channel=None):
     global channel_inst
     if not channel:
+        #TODO should lazy init channel_inst
         channel_inst = connect_and_declare(host=host, usr=usr, pas=pas)
     else:
         channel_inst = channel
-    print('channel_inst', channel_inst)
 
     bashtasks = BashTasks()
     bashtasks.post_task = post_task
