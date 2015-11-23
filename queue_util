@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+
+import argparse
+from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
+import pika
+
+
+def connect(host='localhost', usr='guest', pas='guest'):
+    credentials = PlainCredentials(usr, pas)
+    parameters = ConnectionParameters(host, 5672, '/', credentials)
+    conn = BlockingConnection(parameters)
+    return conn
+
+
+def close_channel_and_conn(ch):
+    if ch.is_open:
+        ch.close()
+    if ch._impl.is_open:
+        ch._impl.close()
+
+
+def declare_and_bind(ch, name, routing_key=''):
+    ch.exchange_declare(exchange=name, type='direct')
+    ch.queue_declare(queue=name)
+    ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
+
+
+def connect_and_declare(queue, host='localhost', usr='guest', pas='guest'):
+    conn = connect(host=host, usr=usr, pas=pas)
+    ch = conn.channel()
+    declare_and_bind(ch, queue)
+    return ch
+
+
+def replicate_queue(channel, queue_from, queue_to, keep_originals=False):
+    msgs_nr = 0
+    print('replicate queue keep_originals', keep_originals)
+    while True:
+        result_method, properties, body = channel.basic_get(queue_from)
+        if body:
+            headers = properties.headers
+            channel.basic_publish(exchange='', routing_key=queue_to,
+                                  body=body, properties=properties)
+            result_methods.append(result_method)
+            msgs_nr += 1
+        else:  # No more messages to process.
+            break
+
+    for result_method in result_methods:
+        channel.basic_nack(result_method.delivery_tag, requeue=keep_originals)
+
+    return msgs_nr
+
+
+def move_messages(channel, queue_from, queue_to):
+    return replicate_queue(channel, queue_from, queue_to, keep_originals=False)
+
+
+def copy_messages(channel, queue_from, queue_to):
+    return replicate_queue(channel, queue_from, queue_to, keep_originals=True)
+
+
+if __name__ == '__main__':
+
+    commands = {'copy': copy_messages,
+                'move': move_messages}
+
+    parser = argparse.ArgumentParser(description=globals()['__doc__'], add_help=True)
+    parser.add_argument('--host', default='127.0.0.1', dest='host')
+    parser.add_argument('--user', default='guest', dest='usr')
+    parser.add_argument('--pass', default='guest', dest='pas')
+    parser.add_argument('--command', required=True, dest='command',
+                        help='command to execute, one of: ' + str(list(commands.keys())))
+    parser.add_argument('--from', required=True, dest='queue_from')
+    parser.add_argument('--to', required=True, dest='queue_to')
+
+    args = parser.parse_args()
+
+    command = args.command
+    queue_from = args.queue_from
+    queue_to = args.queue_to
+    host = args.host
+    usr = args.usr
+    pas = args.pas
+
+    if not command in commands:
+        print('Non supported command: {}', args.commands)
+        parser.print_help()
+        sys.exit(1)
+
+    channel = connect_and_declare(queue=queue_to, host=host, usr=usr, pas=pas)
+    result_methods = []
+
+    function = commands[command]
+    msgs_nr = function(channel, queue_from, queue_to)
+
+    print('Finished {} from "{}" to "{}" total: {} msgs'
+          .format(command, queue_from, queue_to, msgs_nr))
