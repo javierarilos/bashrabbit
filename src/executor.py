@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """ executor is the process that executes bashtasks
 """
+import signal
 import argparse
 import subprocess
 import sys
@@ -9,9 +10,13 @@ import time
 import os
 import threading
 from socket import gethostname
+from time import sleep
 
 from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
+
+channels = []  # stores all executor thread channels.
+stop = False   # False until the executor is asked to stop
 
 
 def currtimemillis():
@@ -44,6 +49,8 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
     ch = connect_and_declare(host=host, usr=usr, pas=pas)
     ch.basic_qos(prefetch_count=1)  # consume msgs one at a time
+
+    channels.append(ch)
 
     def should_retry(response_msg):
         is_error = response_msg['returncode'] != 0
@@ -113,6 +120,36 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
     ch.start_consuming()
 
 
+def stop_ampq_channels():
+    worker_stopping = 1
+    for ch in channels:
+        print('\tStopping worker ({})...'.format((worker_stopping,)))
+
+        if ch.is_open:
+            try:
+                ch.close()
+            except Exception as e:
+                print('Exception closing channel'+str(e))
+        print('\tStopped worker ({}).'.format((worker_stopping,)))
+        worker_stopping += 1
+
+
+def stop_and_exit():
+    stop_ampq_channels()
+    print('Stopped all AMQP channels.')
+    global stop
+    stop = True
+
+
+def register_signals_handling():
+    def signal_handler(signal, frame):
+        print('Received signal: ', str(signal))
+        stop_and_exit()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=globals()['__doc__'], add_help=True)
     parser.add_argument('--host', default='127.0.0.1', dest='host')
@@ -122,6 +159,8 @@ if __name__ == '__main__':
     parser.add_argument('--workers', default=1, dest='workers', type=int)
     parser.add_argument('--tasks', default=-1, dest='tasks_nr', type=int)
     parser.add_argument('--max-retries', default=0, dest='max_retries', type=int)
+
+    register_signals_handling()
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -138,5 +177,7 @@ if __name__ == '__main__':
         worker_th.start()
         worker_ths.append(worker_th)
 
-    for worker_th in worker_ths:
-        worker_th.join()
+    while not stop:
+        sleep(1)
+
+    print('Executor exiting now.')
