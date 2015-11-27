@@ -9,8 +9,8 @@ x.post_task('ls -la')  # when done, result will be in bashtasks:pool:responses q
 ```
 
 ## TODO list
-* Define public API
-* post_task
-* reply_to: reply to sender // reply to responses pool
-* Test it
 * implement reconnect.
+* retries policy per message.
+* status code retry policy: {retriable: [1, 23, 13], non_retriable: [2, 4, 6, 7], default: 'retriable'}
+* stdout, stderr response policy: all, only_stdin, only_stdout, on_error
+* executor to be able to execute an arbitrary python module instead of popen
