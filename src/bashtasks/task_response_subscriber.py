@@ -20,6 +20,23 @@ def rabbit_msg_received(callback, ch, method, properties, body):
     callback(ResponseMsg(ch, method, properties, body))
 
 
+class MessageAmqpPika:
+    def __init__(self, ch, method, properties, body):
+        self._channel = ch
+        self._method = method
+        self.properties = properties
+        self.body = body
+
+    def ack(self):
+        self._channel.basic_ack(self._method.delivery_tag)
+
+    def requeue(self):
+        raise Exception('MessageAmqpPika.requeue not yet implemented')
+
+    def discard(self):
+        raise Exception('MessageAmqpPika.discard not yet implemented')
+
+
 class TaskResponseSubscriber:
     def __init__(self, host='127.0.0.1', usr='guest', pas='guest'):
         self.host = host
@@ -27,13 +44,17 @@ class TaskResponseSubscriber:
         self.pas = pas
 
     def subscribe(self, callback, queue=TASK_RESPONSES_POOL):
+        def pika_event_to_bashtasks_msg(ch, method, properties, body):
+            msg = MessageAmqpPika(ch, method, properties, body)
+            callback(msg)
+
         global channel_inst
         if not channel_inst:
             channel_inst = connect_and_declare(host=self.host, usr=self.usr, pas=self.pas)
 
         channel_inst.basic_qos(prefetch_count=1)  # consume msgs one at a time
 
-        channel_inst.basic_consume(callback, queue=queue, no_ack=False)
+        channel_inst.basic_consume(pika_event_to_bashtasks_msg, queue=queue, no_ack=False)
 
         channel_inst.start_consuming()
 

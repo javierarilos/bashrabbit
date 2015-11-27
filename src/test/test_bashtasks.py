@@ -136,10 +136,10 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
         response_msg = {}
 
         def start_subscriber():
-            def on_response_received(ch, method, properties, body):
-                msg = json.loads(body.decode('utf-8'))
-                response_msg.update(msg)
-                ch.basic_ack(method.delivery_tag)
+            def on_response_received(msg):
+                body = json.loads(msg.body.decode('utf-8'))
+                response_msg.update(body)
+                msg.ack()
 
             subscriber = bashtasks_mod.init_subscriber(host=rabbit_host,
                                                        usr=rabbit_user, pas=rabbit_pass)

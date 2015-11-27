@@ -55,8 +55,8 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None
         else:  # pending_tasks < 0 -> infinite. > 0 is the nr msgs pending
             print('-- still msgs_pending:', get_pending_nr())
 
-    def handle_response(ch, method, properties, body):
-        msg = json.loads(body.decode('utf-8'))
+    def handle_response(response_msg):
+        msg = json.loads(response_msg.body.decode('utf-8'))
         print(">>>> response received: ", threading.current_thread().name,
               "from queue ", TASK_RESPONSES_POOL,
               " correlation_id: ", msg['correlation_id'],
@@ -71,7 +71,7 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None
             print('--------------------')
             trace_error_msg(err_dir, msg)
 
-        ch.basic_ack(method.delivery_tag)
+        response_msg.ack()
 
         count_message_processed()
 
