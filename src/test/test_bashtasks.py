@@ -3,6 +3,9 @@ import time
 import os
 from datetime import datetime
 import multiprocessing
+import threading
+from time import sleep
+import json
 
 import bashtasks as bashtasks_mod
 import bashtasks.rabbit_util as rabbit_util
@@ -114,6 +117,51 @@ class IntegTestExecuteTask(unittest.TestCase):
             self.assertEqual(response_msg['command'], ls_task)
             self.assertEqual(response_msg['reply_to'], TASK_RESPONSES_POOL)
             self.assertTrue('correlation_id' in response_msg)
+        finally:
+            kill_executor_process(p)
+            time.sleep(0.2)
+
+@unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
+class IntegTestTaskResponseSubscriber(unittest.TestCase):
+    def setUp(self):
+        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+
+    def tearDown(self):
+        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        bashtasks_mod.reset()
+
+    def test_subscribe(self):
+        ls_task = ['ls', '-la']
+        response_msg = {}
+
+        def start_subscriber():
+            def on_response_received(ch, method, properties, body):
+                msg = json.loads(body.decode('utf-8'))
+                response_msg.update(msg)
+                ch.basic_ack(method.delivery_tag)
+
+            subscriber = bashtasks_mod.init_subscriber(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            subscriber.subscribe(on_response_received)
+
+        try:
+            # subscribe to responses.
+            # prepare executor, and send task.
+            # subscribe to responses and check response arrives
+
+            subscriber_th = threading.Thread(target=start_subscriber,
+                                        args=(),
+                                        name='subscriber_th',
+                                        daemon=True)
+            subscriber_th.start()
+
+            p = start_executor_process()
+
+            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            posted_msg = bashtasks.post_task(ls_task)
+
+            sleep(0.5)  # give rabbit and subscriber time to work
+            self.assertEqual(ls_task, response_msg['command'])
+
         finally:
             kill_executor_process(p)
             time.sleep(0.2)
