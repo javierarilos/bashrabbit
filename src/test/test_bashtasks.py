@@ -121,6 +121,7 @@ class IntegTestExecuteTask(unittest.TestCase):
             kill_executor_process(p)
             time.sleep(0.2)
 
+
 @unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
 class IntegTestTaskResponseSubscriber(unittest.TestCase):
     def setUp(self):
@@ -140,7 +141,8 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
                 response_msg.update(msg)
                 ch.basic_ack(method.delivery_tag)
 
-            subscriber = bashtasks_mod.init_subscriber(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            subscriber = bashtasks_mod.init_subscriber(host=rabbit_host,
+                                                       usr=rabbit_user, pas=rabbit_pass)
             subscriber.subscribe(on_response_received)
 
         try:
@@ -149,9 +151,9 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
             # subscribe to responses and check response arrives
 
             subscriber_th = threading.Thread(target=start_subscriber,
-                                        args=(),
-                                        name='subscriber_th',
-                                        daemon=True)
+                                             args=(),
+                                             name='subscriber_th',
+                                             daemon=True)
             subscriber_th.start()
 
             p = start_executor_process()
