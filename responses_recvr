@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-./src/responses_recvr.py "$@"
