@@ -31,17 +31,6 @@ def get_thread_name():
     return 'worker_th_' + str(x)
 
 
-def create_response_for(msg):
-    return {
-        'correlation_id': msg['correlation_id'],
-        'reply_to': msg['reply_to'],
-        'command': msg['command'],
-        'request_ts': msg['request_ts'],
-        'executor_name': get_executor_name(),
-        'retries': msg.get('retries', 0)
-    }
-
-
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_retries=0):
     curr_th_name = threading.current_thread().name
     print(">> Starting executor", curr_th_name, "connecting to rabbitmq:", host, usr, pas,
@@ -52,17 +41,29 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
     channels.append(ch)
 
+    def create_response_for(msg):
+        return {
+            'correlation_id': msg['correlation_id'],
+            'reply_to': msg['reply_to'],
+            'command': msg['command'],
+            'request_ts': msg['request_ts'],
+            'executor_name': get_executor_name(),
+            'retries': msg.get('retries', 0),
+            'max_retries': msg.get('max_retries', max_retries)
+        }
+
     def should_retry(response_msg):
         is_error = response_msg['returncode'] != 0
         current_retries = response_msg.get('retries', 0)
-        retries_pending = current_retries < max_retries
+        msg_max_retries = response_msg.get('max_retries', max_retries)
+        retries_pending = current_retries < msg_max_retries
         return is_error and retries_pending
 
     def send_response(response_msg):
         if should_retry(response_msg):
-            print('---- retrying msg correlation_id: {} '
-                  'current_retries: {}'
-                  .format(response_msg['correlation_id'], response_msg['retries']))
+            print('---- retrying msg correlation_id: {} current_retries: {} of {}'
+                  .format(response_msg['correlation_id'],
+                          response_msg['retries'], response_msg['max_retries']))
             tgt_exch = TASK_REQUESTS_POOL
             response_msg['retries'] += 1
         else:
@@ -76,8 +77,8 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
         print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL,
               " : correlation_id", msg['correlation_id'], "command: ", msg['command'])
 
+        response_msg = create_response_for(msg)
         try:
-            response_msg = create_response_for(msg)
             response_msg['pre_command_ts'] = currtimemillis()
 
             p = subprocess.Popen(msg['command'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)

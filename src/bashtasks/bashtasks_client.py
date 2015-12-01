@@ -15,7 +15,7 @@ def currtimemillis():
     return int(round(time.time() * 1000))
 
 
-def post_task(command, reply_to=Destination.responses_pool):
+def post_task(command, reply_to=Destination.responses_pool, max_retries=None):
     """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
         does NOT wait for response.
         :return: <dict> message created for the task.
@@ -30,17 +30,19 @@ def post_task(command, reply_to=Destination.responses_pool):
         'request_ts': currtimemillis(),
         'reply_to': DestinationNames.get_for(reply_to)
     }
+    if max_retries:
+        msg['max_retries'] = max_retries
     msg_str = json.dumps(msg)
     channel_inst.basic_publish(exchange=TASK_REQUESTS_POOL, routing_key='', body=msg_str)
     return msg
 
 
-def execute_task(command, reply_to=Destination.responses_pool, timeout=10):
+def execute_task(command, reply_to=Destination.responses_pool, timeout=10, max_retries=None):
     """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
         synchronously waits for response.
         :return: <dict> response message.
     """
-    task = post_task(command, reply_to)
+    task = post_task(command, reply_to, max_retries=max_retries)
     start_waiting = datetime.now()
     while True:
         method_frame, header_frame, body = channel_inst.basic_get(TASK_RESPONSES_POOL)

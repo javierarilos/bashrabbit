@@ -13,6 +13,7 @@ parser.add_argument('--host', default='127.0.0.1', dest='host')
 parser.add_argument('--port', default=5672, dest='port', type=int)
 parser.add_argument('--user', default='guest', dest='usr')
 parser.add_argument('--pass', default='guest', dest='pas')
+parser.add_argument('--max-retries', default=None, dest='max_retries', type=int)
 parser.add_argument('--no-wait', default=False, action='store_true', dest='fire_and_forget')
 parser.add_argument('--command', required=True, dest='command',
                     metavar='"COMMAND" to execute. Better wrapped with quotes (")')
@@ -33,10 +34,10 @@ start_ts = currtimemillis()
 bashtasks = bashtasks_mod.init(host=args.host, usr=args.usr, pas=args.pas)
 
 if args.fire_and_forget:
-    bashtasks.post_task(args.command)
+    bashtasks.post_task(args.command, max_retries=args.max_retries)
     sys.exit(0)
 
-response_msg = bashtasks.execute_task(args.command)
+response_msg = bashtasks.execute_task(args.command, max_retries=args.max_retries)
 
 total_time = currtimemillis() - response_msg['request_ts']
 command_time = response_msg['post_command_ts'] - response_msg['pre_command_ts']
