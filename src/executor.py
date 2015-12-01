@@ -112,8 +112,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
               response_msg['correlation_id'], "pending:", tasks_nr)
         if tasks_nr == 0:
             print('==== no more tasks to execute. Exiting.')
-            close_channel_and_conn(ch)
-            sys.exit(0)
+            stop_and_exit()
 
     ch.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
     print("<< Ready: executor", curr_th_name, "connected to rabbitmq:", host, usr, pas)
