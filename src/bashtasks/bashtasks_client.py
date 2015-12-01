@@ -7,6 +7,7 @@ from datetime import datetime
 from bashtasks.constants import TASK_RESPONSES_POOL, TASK_REQUESTS_POOL
 from bashtasks.constants import Destination, DestinationNames
 from bashtasks.rabbit_util import connect_and_declare, declare_and_bind, close_channel_and_conn
+from bashtasks import message
 
 channel_inst = None
 
@@ -20,19 +21,12 @@ def post_task(command, reply_to=Destination.responses_pool, max_retries=None):
         does NOT wait for response.
         :return: <dict> message created for the task.
     """
+    msg = message.get_request(command, reply_to=Destination.responses_pool, max_retries=max_retries)
 
     if reply_to is Destination.responses_exclusive:
-        declare_and_bind(channel_inst, DestinationNames.get_for(reply_to))
+        declare_and_bind(channel_inst, msg['reply_to'])
 
-    msg = {
-        'command': command,
-        'correlation_id': currtimemillis(),
-        'request_ts': currtimemillis(),
-        'reply_to': DestinationNames.get_for(reply_to)
-    }
-    if max_retries:
-        msg['max_retries'] = max_retries
-    msg_str = json.dumps(msg)
+    msg_str = msg.to_json()
     channel_inst.basic_publish(exchange=TASK_REQUESTS_POOL, routing_key='', body=msg_str)
     return msg
 
@@ -48,7 +42,7 @@ def execute_task(command, reply_to=Destination.responses_pool, timeout=10, max_r
         method_frame, header_frame, body = channel_inst.basic_get(TASK_RESPONSES_POOL)
         if body:
             channel_inst.basic_ack(method_frame.delivery_tag)
-            return json.loads(body.decode('utf-8'))
+            return message.from_str(body.decode('utf-8'))
         else:
             if (datetime.now() - start_waiting).total_seconds() > timeout:
                 raise Exception('Timeout ({}secs) waiting for response to msg: {} in queue: "{}"'

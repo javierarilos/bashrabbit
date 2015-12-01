@@ -31,4 +31,7 @@ class DestinationNames:
 
     @classmethod
     def get_for(cls, destination_type):
-        return cls.destination_providers[destination_type]()
+        if destination_type in cls.destination_providers:
+            return cls.destination_providers[destination_type]()
+        else:
+            return destination_type
