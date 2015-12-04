@@ -29,10 +29,10 @@ def is_error(msg):
     return msg['returncode'] != 0
 
 
-def trace_error_msg(err_dir, msg):
-    filename = '{}.msg.err.txt'.format(msg['correlation_id'])
+def trace_error_msg(msgs_dir, msg):
+    filename = '{}.msg.json'.format(msg['correlation_id'])
 
-    with open(os.path.join(err_dir, filename), 'w') as err_file:
+    with open(os.path.join(msgs_dir, filename), 'w') as err_file:
         err_file.write(json.dumps(msg))
 
 
@@ -41,7 +41,8 @@ def init_dir(dir):
         os.makedirs(dir, exist_ok=True)
 
 
-def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None, err_dir=None):
+def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None,
+                          msgs_dir=None, trace_err_only=False):
 
     def count_message_processed():
         global pending_tasks
@@ -65,11 +66,8 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None
 
         stats.trackMsg(msg)
 
-        if err_dir and is_error(msg):
-            print('-------------------- MSG IS ERROR:')
-            print(json.dumps(msg, indent=4, separators=(',', ': ')))
-            print('--------------------')
-            trace_error_msg(err_dir, msg)
+        if msgs_dir and (not trace_err_only or is_error(msg)):
+            trace_error_msg(msgs_dir, msg)
 
         response_msg.ack()
 
@@ -106,7 +104,9 @@ if __name__ == '__main__':
     parser.add_argument('--tasks', default=-1, dest='tasks', type=int)
     parser.add_argument('--stats-interval', default=0, dest='stats_interval', type=int)
     parser.add_argument('--csv', default=None, dest='stats_csv_filename')
-    parser.add_argument('--err-dir', default=None, dest='err_dir')
+    parser.add_argument('--msgs-dir', default=None, dest='msgs_dir')
+    parser.add_argument('--trace-err-only', default=False, action='store_true',
+                        dest='trace_err_only')
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -118,8 +118,8 @@ if __name__ == '__main__':
 
     csvAutoSave = args.stats_csv_filename is not None
 
-    if args.err_dir:
-        init_dir(args.err_dir)
+    if args.msgs_dir:
+        init_dir(args.msgs_dir)
     if args.stats_csv_filename:
         init_dir(os.path.dirname(args.stats_csv_filename))
 
@@ -142,6 +142,7 @@ if __name__ == '__main__':
 
     for x in range(0, args.workers):
         worker_th = threading.Thread(target=start_responses_recvr,
-                                     args=(args.host, args.usr, args.pas, stats, args.err_dir),
+                                     args=(args.host, args.usr, args.pas, stats,
+                                           args.msgs_dir, args.trace_err_only),
                                      name='worker_th_' + str(x))
         worker_th.start()
