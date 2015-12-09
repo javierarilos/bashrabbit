@@ -72,6 +72,12 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
         response_str = json.dumps(response_msg)
         ch.basic_publish(exchange=tgt_exch, routing_key='', body=response_str)
 
+    def tasks_nr_generator(tasks_nr):
+        tasks_nr_gen = tasks_nr
+        while True:
+            tasks_nr_gen = tasks_nr_gen - 1 if tasks_nr_gen > 0 else tasks_nr_gen
+            yield tasks_nr_gen
+
     def handle_command_request(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
         print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL,
@@ -100,9 +106,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             send_response(response_msg)
             ch.basic_ack(method.delivery_tag)
 
-        # nonlocal is not supported by python 2.7
-        # nonlocal tasks_nr
-        # tasks_nr = tasks_nr - 1 if tasks_nr > 0 else tasks_nr
+        tasks_nr_new_elem = tasks_nr_gen.next()
         if response_msg['returncode'] != 0:
             print('****************************************** ERR ', response_msg['correlation_id'])
             print('returncode:', response_msg['returncode'])
@@ -111,11 +115,12 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             print('******************************************')
 
         print("<<<< executed by: executor", curr_th_name, "correlation_id:",
-              response_msg['correlation_id'], "pending:", tasks_nr)
-        if tasks_nr == 0:
+              response_msg['correlation_id'], "pending:", tasks_nr_new_elem)
+        if tasks_nr_new_elem == 0:
             print('==== no more tasks to execute. Exiting.')
             stop_and_exit()
 
+    tasks_nr_gen = tasks_nr_generator(tasks_nr)
     ch.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
     print("<< Ready: executor", curr_th_name, "connected to rabbitmq:", host, usr, pas)
     ch.start_consuming()
