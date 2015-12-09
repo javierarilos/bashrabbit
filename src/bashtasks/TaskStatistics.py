@@ -24,6 +24,8 @@ csv_fields = (
     "pre_command_ts",
     "post_command_ts",
     "returncode",
+    "retries",
+    "executor_name"
     "command"
 )
 
