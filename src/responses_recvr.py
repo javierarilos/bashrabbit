@@ -29,8 +29,8 @@ def is_error(msg):
     return msg['returncode'] != 0
 
 
-def trace_error_msg(msgs_dir, msg):
-    filename = '{}.msg.json'.format(msg['correlation_id'])
+def trace_msg(msgs_dir, msg):
+    filename = '{}.{}.msg.json'.format(msg['correlation_id'], pending_tasks)
 
     with open(os.path.join(msgs_dir, filename), 'w') as err_file:
         err_file.write(json.dumps(msg))
