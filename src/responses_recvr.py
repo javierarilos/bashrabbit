@@ -10,7 +10,6 @@ import time
 import threading
 from socket import gethostname
 
-
 from bashtasks.rabbit_util import connect_and_declare
 
 from bashtasks import TaskStatistics
@@ -43,7 +42,6 @@ def init_dir(dir):
 
 def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None,
                           msgs_dir=None, trace_err_only=False):
-
     def count_message_processed():
         global pending_tasks
         pending_tasks = -1 if pending_tasks == -1 else pending_tasks - 1
@@ -128,15 +126,17 @@ if __name__ == '__main__':
     if args.stats_interval > 0:  # print stats every stats_interval seconds
         print('>>>>> args.stats_interval', args.stats_interval)
 
+
         def print_stats_every(interval):
             while True:
                 time.sleep(interval)
                 stats.sumaryPrettyPrint()
 
+        # daemon=True is not supported by python 2.7
         stats_th = threading.Thread(target=print_stats_every,
                                     args=(args.stats_interval,),
-                                    name='stats_th',
-                                    daemon=True)
+                                    name='stats_th')
+        stats_th.daemon = True
         stats_th.start()
 
     for x in range(0, args.workers):

@@ -16,7 +16,7 @@ from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 channels = []  # stores all executor thread channels.
-stop = False   # False until the executor is asked to stop
+stop = False  # False until the executor is asked to stop
 
 
 def currtimemillis():
@@ -100,8 +100,9 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             send_response(response_msg)
             ch.basic_ack(method.delivery_tag)
 
-        nonlocal tasks_nr
-        tasks_nr = tasks_nr - 1 if tasks_nr > 0 else tasks_nr
+        # nonlocal is not supported by python 2.7
+        # nonlocal tasks_nr
+        # tasks_nr = tasks_nr - 1 if tasks_nr > 0 else tasks_nr
         if response_msg['returncode'] != 0:
             print('****************************************** ERR ', response_msg['correlation_id'])
             print('returncode:', response_msg['returncode'])
@@ -129,7 +130,7 @@ def stop_ampq_channels():
             try:
                 ch.close()
             except Exception as e:
-                print('Exception closing channel'+str(e))
+                print('Exception closing channel' + str(e))
         print('\tStopped worker ({}).'.format((worker_stopping,)))
         worker_stopping += 1
 
@@ -169,11 +170,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     worker_ths = []
     for x in range(0, args.workers):
+        # daemon=True is not supported by python 2.7
         worker_th = threading.Thread(target=start_executor,
                                      args=(args.host, args.usr, args.pas,
                                            args.tasks_nr, args.max_retries),
-                                     name=get_thread_name(),
-                                     daemon=True)
+                                     name=get_thread_name())
+        worker_th.daemon = True
+
         worker_th.start()
         worker_ths.append(worker_th)
 
