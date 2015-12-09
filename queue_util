@@ -3,6 +3,7 @@
 import argparse
 from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
 import pika
+import sys
 
 
 def connect(host='localhost', usr='guest', pas='guest'):
@@ -83,8 +84,8 @@ if __name__ == '__main__':
     usr = args.usr
     pas = args.pas
 
-    if not command in commands:
-        print('Non supported command: {}', args.commands)
+    if command not in commands:
+        print('Non supported command: {}', command)
         parser.print_help()
         sys.exit(1)
 
