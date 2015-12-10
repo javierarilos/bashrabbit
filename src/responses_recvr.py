@@ -103,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument('--stats-interval', default=0, dest='stats_interval', type=int)
     parser.add_argument('--csv', default=None, dest='stats_csv_filename')
     parser.add_argument('--msgs-dir', default=None, dest='msgs_dir')
-    parser.add_argument('--trace-err-only', action='store_false', dest='trace_err_only')
+    parser.add_argument('--trace-err-only', action='store_true', dest='trace_err_only')
 
     if len(sys.argv) == 1:
         parser.print_help()
