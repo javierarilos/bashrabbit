@@ -106,7 +106,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             send_response(response_msg)
             ch.basic_ack(method.delivery_tag)
 
-        tasks_nr_new_elem = tasks_nr_gen.next()
+        tasks_nr_new_elem = next(tasks_nr_gen)
         if response_msg['returncode'] != 0:
             print('****************************************** ERR ', response_msg['correlation_id'])
             print('returncode:', response_msg['returncode'])
