@@ -17,6 +17,7 @@ from bashtasks import init_subscriber
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 pending_tasks = -1  # pending_tasks: -1 is infinite.
+index = 1  # index to differenciate same correlation_id msgs
 stats = None
 
 
@@ -29,7 +30,9 @@ def is_error(msg):
 
 
 def trace_msg(msgs_dir, msg):
-    filename = '{}.{}.msg.json'.format(msg['correlation_id'], pending_tasks)
+    global index
+    filename = '{}.{}.msg.json'.format(msg['correlation_id'], index)
+    index += 1
 
     with open(os.path.join(msgs_dir, filename), 'w') as err_file:
         err_file.write(json.dumps(msg))
