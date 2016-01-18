@@ -11,12 +11,30 @@ import os
 import threading
 from socket import gethostname
 from time import sleep
+import logging
 
 from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 
 channels = []  # stores all executor thread channels.
 stop = False  # False until the executor is asked to stop
+MB_10 = 10485760
+
+
+def curr_module_name():
+    return os.path.splitext(os.path.basename(__file__))[0]
+
+
+def get_logger():
+    logger = logging.getLogger(curr_module_name())
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('{asctime};{name};{threadName};{levelname};{message}',
+                                  style='{', datefmt='%Y-%m-%d;%H:%M:%S')
+    ch = logging.StreamHandler()
+    ch.setFormatter(formatter)
+    ch.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
+    return logger
 
 
 def currtimemillis():
@@ -33,8 +51,9 @@ def get_thread_name():
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_retries=0):
     curr_th_name = threading.current_thread().name
-    print(">> Starting executor", curr_th_name, "connecting to rabbitmq:", host, usr, pas,
-          "executing", tasks_nr, "tasks.")
+    logger = get_logger()
+    logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
+                curr_th_name, usr, pas, host, tasks_nr)
 
     ch = connect_and_declare(host=host, usr=usr, pas=pas)
     ch.basic_qos(prefetch_count=1)  # consume msgs one at a time
@@ -106,7 +125,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             send_response(response_msg)
             ch.basic_ack(method.delivery_tag)
 
-        tasks_nr_new_elem = next(tasks_nr_gen)
+        tasks_nr_new_elem = tasks_nr_gen.next()
         if response_msg['returncode'] != 0:
             print('****************************************** ERR ', response_msg['correlation_id'])
             print('returncode:', response_msg['returncode'])
@@ -122,7 +141,8 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
     tasks_nr_gen = tasks_nr_generator(tasks_nr)
     ch.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
-    print("<< Ready: executor", curr_th_name, "connected to rabbitmq:", host, usr, pas)
+    logger.info("<< Ready: executor %s connected to rabbitmq: %s:%s@%s",
+                curr_th_name, usr, pas, host)
     ch.start_consuming()
 
 
