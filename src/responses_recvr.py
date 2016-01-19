@@ -15,10 +15,15 @@ from bashtasks.rabbit_util import connect_and_declare
 from bashtasks import TaskStatistics
 from bashtasks import init_subscriber
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
+from bashtasks.logger import get_logger
 
 pending_tasks = -1  # pending_tasks: -1 is infinite.
 index = 1  # index to differenciate same correlation_id msgs
 stats = None
+
+
+def curr_module_name():
+    return os.path.splitext(os.path.basename(__file__))[0]
 
 
 def currtimemillis():
@@ -44,26 +49,32 @@ def init_dir(dir):
 
 
 def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None,
-                          msgs_dir=None, trace_err_only=False):
+                          msgs_dir=None, trace_err_only=False, verbose=False):
+    logger = get_logger(name=curr_module_name())
+
     def count_message_processed():
         global pending_tasks
         pending_tasks = -1 if pending_tasks == -1 else pending_tasks - 1
 
         if pending_tasks == 0:
-            print("Processed all messages... exiting.")
+            logger.info("Processed all messages... exiting.")
             stats.sumaryPrettyPrint()
             stats.closeCsvFile()
             sys.exit()
         else:  # pending_tasks < 0 -> infinite. > 0 is the nr msgs pending
-            print('-- still msgs_pending:', get_pending_nr())
+            logger.debug('-- still msgs_pending: %d', get_pending_nr())
 
     def handle_response(response_msg):
         msg = json.loads(response_msg.body.decode('utf-8'))
-        print(">>>> response received: ", threading.current_thread().name,
-              "from queue ", TASK_RESPONSES_POOL,
-              " correlation_id: ", msg['correlation_id'],
-              " pending_msgs: ", get_pending_nr(),
-              " is_error: ", str(is_error(msg)))
+        logger.debug(">>>> response received: %s from queue %s correlation_id: %d \
+                      pending_msgs: %d is_error: %s",
+                     threading.current_thread().name, TASK_RESPONSES_POOL,
+                     msg['correlation_id'], get_pending_nr(), str(is_error(msg)))
+        if verbose:
+            logger.info('---------------------------------------- MSG:')
+            for key, value in msg.items():
+                logger.info('\t%s:-> %s', key, str(value))
+            logger.info('---------------------------------------------')
 
         stats.trackMsg(msg)
 
@@ -76,7 +87,8 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None
 
     curr_th_name = threading.current_thread().name
 
-    print(">> Starting receiver", curr_th_name, "connecting to rabbitmq:", host, usr, pas)
+    logger.info(">> Starting receiver %s connecting to rabbitmq: %s:%s@%s",
+                curr_th_name, usr, pas, host)
 
     subscriber = init_subscriber(host=host, usr=usr, pas=pas)
     subscriber.subscribe(handle_response)
@@ -107,6 +119,7 @@ if __name__ == '__main__':
     parser.add_argument('--csv', default=None, dest='stats_csv_filename')
     parser.add_argument('--msgs-dir', default=None, dest='msgs_dir')
     parser.add_argument('--trace-err-only', action='store_true', dest='trace_err_only')
+    parser.add_argument('--verbose', action='store_true', dest='verbose')
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -127,8 +140,8 @@ if __name__ == '__main__':
     stats = TaskStatistics(csvAuto=csvAutoSave, csvFileName=args.stats_csv_filename)
 
     if args.stats_interval > 0:  # print stats every stats_interval seconds
-        print('>>>>> args.stats_interval', args.stats_interval)
-
+        logger = get_logger(name=curr_module_name())
+        logger.info('>>>>> args.stats_interval: %d', args.stats_interval)
 
         def print_stats_every(interval):
             while True:
@@ -145,6 +158,7 @@ if __name__ == '__main__':
     for x in range(0, args.workers):
         worker_th = threading.Thread(target=start_responses_recvr,
                                      args=(args.host, args.usr, args.pas, stats,
-                                           args.msgs_dir, args.trace_err_only),
+                                           args.msgs_dir, args.trace_err_only,
+                                           args.verbose),
                                      name='worker_th_' + str(x))
         worker_th.start()
