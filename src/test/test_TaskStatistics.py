@@ -22,6 +22,7 @@ def get_msg(request_ts=None, pre_command_ts=None, post_command_ts=None, returnco
             'post_command_ts': post_command_ts if post_command_ts else currtimemillis() + 1000,
             'executor_name': executor_name,
             'returncode': returncode,
+            'retries': 2,
             'command': 'docker exec -t blahblah /opt/bashtasks/execute_task.py --no-wait '
                        '--host $RABBIT_HOST --user $RABBIT_USER --pass $RABBIT_PASS '
                        '--command "docker run -v /var/run/docker.sock:/var/run/docker.sock '
