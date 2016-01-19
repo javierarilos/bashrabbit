@@ -15,6 +15,7 @@ import logging
 
 from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
+from bashtasks.logger import get_logger
 
 channels = []  # stores all executor thread channels.
 stop = False  # False until the executor is asked to stop
@@ -23,21 +24,6 @@ MB_10 = 10485760
 
 def curr_module_name():
     return os.path.splitext(os.path.basename(__file__))[0]
-
-
-def get_logger():
-    logger = logging.getLogger(curr_module_name())
-    if logger.hasHandlers():
-        return logger
-
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('{asctime};{name};{threadName};{levelname};{message}',
-                                  style='{', datefmt='%Y-%m-%d;%H:%M:%S')
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    ch.setLevel(logging.DEBUG)
-    logger.addHandler(ch)
-    return logger
 
 
 def currtimemillis():
@@ -54,7 +40,7 @@ def get_thread_name():
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_retries=0):
     curr_th_name = threading.current_thread().name
-    logger = get_logger()
+    logger = get_logger(name=curr_module_name())
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
                 curr_th_name, usr, pas, host, tasks_nr)
 
@@ -153,7 +139,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
 def stop_ampq_channels():
     worker_stopping = 1
-    logger = get_logger()
+    logger = get_logger(name=curr_module_name())
     for ch in channels:
         logger.info('\tStopping worker (%d)...', worker_stopping)
 
@@ -168,7 +154,7 @@ def stop_ampq_channels():
 
 def stop_and_exit():
     stop_ampq_channels()
-    logger = get_logger()
+    logger = get_logger(name=curr_module_name())
     logger.info('Stopped all AMQP channels.')
     global stop
     stop = True
@@ -176,7 +162,7 @@ def stop_and_exit():
 
 def register_signals_handling():
     def signal_handler(signal, frame):
-        logger = get_logger()
+        logger = get_logger(name=curr_module_name())
         logger.info('Received signal: %s', str(signal))
         stop_and_exit()
 
@@ -216,4 +202,4 @@ if __name__ == '__main__':
     while not stop:
         sleep(1)
 
-    get_logger().info('Executor exiting now.')
+    get_logger(name=curr_module_name()).info('Executor exiting now.')
