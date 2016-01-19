@@ -38,7 +38,8 @@ def get_thread_name():
     return 'worker_th_' + str(x)
 
 
-def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_retries=0):
+def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
+                   max_retries=0, verbose=False):
     curr_th_name = threading.current_thread().name
     logger = get_logger(name=curr_module_name())
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
@@ -86,13 +87,19 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             tasks_nr_gen = tasks_nr_gen - 1 if tasks_nr_gen > 0 else tasks_nr_gen
             yield tasks_nr_gen
 
+    def trace_msg(msg, context_info=''):
+        logger.info('------------- MSG: %s', context_info)
+        for key, value in msg.items():
+            logger.info('\t%s:-> %s', key, str(value))
+        logger.info('---------------------------------------------')
+
     def handle_command_request(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
         logger.debug(">>>> msg received: %s from queue %s : correlation_id %d command: %s",
                      curr_th_name, TASK_REQUESTS_POOL, msg['correlation_id'], msg['command'])
 
-        response_msg = create_response_for(msg)
         try:
+            response_msg = create_response_for(msg)
             response_msg['pre_command_ts'] = currtimemillis()
 
             p = subprocess.Popen(msg['command'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -104,24 +111,22 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             response_msg['stderr'] = e.decode('utf-8')
 
         except Exception as exc:
-            logger.error('**** got exception for : correlation_id %d ',
+            logger.error('**** Command execution error. Exception for : correlation_id %d ',
                          response_msg['correlation_id'], exc_info=True)
             response_msg['post_command_ts'] = currtimemillis()
             response_msg['returncode'] = -3791
             response_msg['stdout'] = 'Exception trying to execute command.'
             response_msg['stderr'] = repr(exc)
-
         finally:
+            if verbose or response_msg['returncode'] != 0:
+                trace_msg(msg, context_info='Request msg: '+str(msg['correlation_id']))
+                resp_header = 'Response msg: '+str(response_msg['correlation_id']) + \
+                              ' returncode: '+str(response_msg['returncode'])
+                trace_msg(response_msg, context_info=resp_header)
             send_response(response_msg)
             ch.basic_ack(method.delivery_tag)
 
         tasks_nr_new_elem = next(tasks_nr_gen)
-        if response_msg['returncode'] != 0:
-            logger.error('**************** ERR %d', response_msg['correlation_id'])
-            logger.error('returncode: %d', response_msg['returncode'])
-            logger.error('stdout: %s', response_msg['stdout'])
-            logger.error('stderr: %s', response_msg['stderr'])
-            logger.error('****************')
 
         logger.debug("<<<< executed by: executor %s correlation_id: %d pending: %d",
                      curr_th_name, response_msg['correlation_id'], tasks_nr_new_elem)
@@ -179,6 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--workers', default=1, dest='workers', type=int)
     parser.add_argument('--tasks', default=-1, dest='tasks_nr', type=int)
     parser.add_argument('--max-retries', default=0, dest='max_retries', type=int)
+    parser.add_argument('--verbose', action='store_true', dest='verbose')
 
     register_signals_handling()
 
@@ -192,7 +198,8 @@ if __name__ == '__main__':
         # daemon=True is not supported by python 2.7
         worker_th = threading.Thread(target=start_executor,
                                      args=(args.host, args.usr, args.pas,
-                                           args.tasks_nr, args.max_retries),
+                                           args.tasks_nr, args.max_retries,
+                                           args.verbose),
                                      name=get_thread_name())
         worker_th.daemon = True
 
