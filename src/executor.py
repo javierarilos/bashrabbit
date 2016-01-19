@@ -27,6 +27,9 @@ def curr_module_name():
 
 def get_logger():
     logger = logging.getLogger(curr_module_name())
+    if logger.hasHandlers():
+        return logger
+
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('{asctime};{name};{threadName};{levelname};{message}',
                                   style='{', datefmt='%Y-%m-%d;%H:%M:%S')
@@ -80,9 +83,9 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
     def send_response(response_msg):
         if should_retry(response_msg):
-            print('---- retrying msg correlation_id: {} current_retries: {} of {}'
-                  .format(response_msg['correlation_id'],
-                          response_msg['retries'], response_msg['max_retries']))
+            logger.debug('---- retrying msg correlation_id: %d current_retries: %d of %d',
+                         response_msg['correlation_id'], response_msg['retries'],
+                         response_msg['max_retries'])
             tgt_exch = TASK_REQUESTS_POOL
             response_msg['retries'] += 1
         else:
@@ -99,8 +102,8 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
     def handle_command_request(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
-        print(">>>> msg received: ", curr_th_name, "from queue ", TASK_REQUESTS_POOL,
-              " : correlation_id", msg['correlation_id'], "command: ", msg['command'])
+        logger.debug(">>>> msg received: %s from queue %s : correlation_id %d command: %s",
+                     curr_th_name, TASK_REQUESTS_POOL, msg['correlation_id'], msg['command'])
 
         response_msg = create_response_for(msg)
         try:
@@ -115,7 +118,8 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
             response_msg['stderr'] = e.decode('utf-8')
 
         except Exception as exc:
-            print('==== got exception for : correlation_id', response_msg['correlation_id'], exc)
+            logger.error('**** got exception for : correlation_id %d ',
+                         response_msg['correlation_id'], exc_info=True)
             response_msg['post_command_ts'] = currtimemillis()
             response_msg['returncode'] = -3791
             response_msg['stdout'] = 'Exception trying to execute command.'
@@ -127,16 +131,17 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
         tasks_nr_new_elem = next(tasks_nr_gen)
         if response_msg['returncode'] != 0:
-            print('****************************************** ERR ', response_msg['correlation_id'])
-            print('returncode:', response_msg['returncode'])
-            print('stdout:', response_msg['stdout'])
-            print('stderr:', response_msg['stderr'])
-            print('******************************************')
+            logger.error('**************** ERR %d', response_msg['correlation_id'])
+            logger.error('returncode: %d', response_msg['returncode'])
+            logger.error('stdout: %s', response_msg['stdout'])
+            logger.error('stderr: %s', response_msg['stderr'])
+            logger.error('****************')
 
-        print("<<<< executed by: executor", curr_th_name, "correlation_id:",
-              response_msg['correlation_id'], "pending:", tasks_nr_new_elem)
+        logger.debug("<<<< executed by: executor %s correlation_id: %d pending: %d",
+                     curr_th_name, response_msg['correlation_id'], tasks_nr_new_elem)
+
         if tasks_nr_new_elem == 0:
-            print('==== no more tasks to execute. Exiting.')
+            logger.info('==== no more tasks to execute. Exiting.')
             stop_and_exit()
 
     tasks_nr_gen = tasks_nr_generator(tasks_nr)
@@ -148,28 +153,31 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1, max_r
 
 def stop_ampq_channels():
     worker_stopping = 1
+    logger = get_logger()
     for ch in channels:
-        print('\tStopping worker ({})...'.format((worker_stopping,)))
+        logger.info('\tStopping worker (%d)...', worker_stopping)
 
         if ch.is_open:
             try:
                 ch.close()
             except Exception as e:
-                print('Exception closing channel' + str(e))
-        print('\tStopped worker ({}).'.format((worker_stopping,)))
+                logger.error('Exception closing channel', exc_info=True)
+        logger.info('\tStopped worker (%d).', worker_stopping)
         worker_stopping += 1
 
 
 def stop_and_exit():
     stop_ampq_channels()
-    print('Stopped all AMQP channels.')
+    logger = get_logger()
+    logger.info('Stopped all AMQP channels.')
     global stop
     stop = True
 
 
 def register_signals_handling():
     def signal_handler(signal, frame):
-        print('Received signal: ', str(signal))
+        logger = get_logger()
+        logger.info('Received signal: %s', str(signal))
         stop_and_exit()
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -208,4 +216,4 @@ if __name__ == '__main__':
     while not stop:
         sleep(1)
 
-    print('Executor exiting now.')
+    get_logger().info('Executor exiting now.')
