@@ -77,9 +77,9 @@ class IntegTestPostTask(unittest.TestCase):
         self.assertTrue('request_ts' in msg)
 
 
-def start_executor_process():
+def start_executor_process(tasks_nr=1):
     p = multiprocessing.Process(target=executor.start_executor,
-                                args=(rabbit_host, rabbit_user, rabbit_pass))
+                                args=(rabbit_host, rabbit_user, rabbit_pass, tasks_nr))
     p.start()
     time.sleep(0.1)
     return p
@@ -140,7 +140,6 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
                 body = json.loads(msg.body.decode('utf-8'))
                 response_msg.update(body)
                 msg.ack()
-
             subscriber = bashtasks_mod.init_subscriber(host=rabbit_host,
                                                        usr=rabbit_user, pas=rabbit_pass)
             subscriber.subscribe(on_response_received)
@@ -160,17 +159,63 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
 
             bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
             posted_msg = bashtasks.post_task(ls_task)
-
-            sleep(0.5)  # give rabbit and subscriber time to work
+            start_time = time()
+            while 'command' not in response_msg and time() - start_time < 10:  # give rabbit and subscriber time to work
+                sleep(0.1)
+            self.assertTrue('command' in response_msg)
             self.assertEqual(ls_task, response_msg['command'])
         except Exception as e:
             print('Got exception in test:', repr(e))
             import traceback
             print(traceback.format_exc())
+            print('response_msg::::::', repr(response_msg))
 
         finally:
             kill_executor_process(p)
             time.sleep(0.2)
+
+@unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
+class IntegTestRetries(unittest.TestCase):
+    def setUp(self):
+        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+
+    def tearDown(self):
+        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        bashtasks_mod.reset()
+
+    def test_execute_task_OK_returns_zero_retries(self):
+        try:
+            p = start_executor_process()
+            max_retries = 5
+            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            ls_task = ['ls', '-la']
+            response_msg = bashtasks.execute_task(ls_task, max_retries=max_retries)
+
+            self.assertEqual(response_msg['retries'], 0)
+            self.assertEqual(response_msg['max_retries'], max_retries)
+            self.assertEqual(response_msg['returncode'], 0)
+        finally:
+            kill_executor_process(p)
+            time.sleep(0.2)
+
+    def test_execute_task_KO_returns_max_retries(self):
+        try:
+            max_retries = 2
+            p = start_executor_process(tasks_nr=max_retries+1)
+            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            ls_task = ['non-existent-command']
+            response_msg = bashtasks.execute_task(ls_task, max_retries=max_retries)
+
+            self.assertEqual(response_msg['retries'], max_retries)
+            self.assertEqual(response_msg['max_retries'], max_retries)
+            self.assertNotEqual(response_msg['returncode'], 0)
+        except Exception as e:
+            raise e
+        finally:
+            kill_executor_process(p)
+            time.sleep(0.2)
+
+
 
 
 if __name__ == '__main__':
