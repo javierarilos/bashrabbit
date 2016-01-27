@@ -152,8 +152,8 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
 
             subscriber_th = threading.Thread(target=start_subscriber,
                                              args=(),
-                                             name='subscriber_th',
-                                             daemon=True)
+                                             name='subscriber_th')
+            subscriber_th.daemon = True
             subscriber_th.start()
 
             p = start_executor_process()
@@ -163,6 +163,10 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
 
             sleep(0.5)  # give rabbit and subscriber time to work
             self.assertEqual(ls_task, response_msg['command'])
+        except Exception as e:
+            print('Got exception in test:', repr(e))
+            import traceback
+            print(traceback.format_exc())
 
         finally:
             kill_executor_process(p)
