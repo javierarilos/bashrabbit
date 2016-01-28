@@ -86,6 +86,7 @@ def start_executor_process(tasks_nr=1):
 
 
 def kill_executor_process(p):
+    time.sleep(0.1)
     p.terminate()
 
 
@@ -159,8 +160,8 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
 
             bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
             posted_msg = bashtasks.post_task(ls_task)
-            start_time = time()
-            while 'command' not in response_msg and time() - start_time < 10:  # give rabbit and subscriber time to work
+            start_time = time.time()
+            while 'command' not in response_msg and time.time() - start_time < 10:  # give rabbit and subscriber time to work
                 sleep(0.1)
             self.assertTrue('command' in response_msg)
             self.assertEqual(ls_task, response_msg['command'])
@@ -209,6 +210,25 @@ class IntegTestRetries(unittest.TestCase):
             self.assertEqual(response_msg['retries'], max_retries)
             self.assertEqual(response_msg['max_retries'], max_retries)
             self.assertNotEqual(response_msg['returncode'], 0)
+        except Exception as e:
+            raise e
+        finally:
+            kill_executor_process(p)
+            time.sleep(0.2)
+
+    def test_execute_task_KO_with_nonretries(self):
+        try:
+            max_retries = 2
+            expected_returncode = 2
+            p = start_executor_process(tasks_nr=max_retries+1)
+            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            task = ['grep', 'bye', 'bye']
+            response_msg = bashtasks.execute_task(task, max_retries=max_retries, non_retriable=[expected_returncode])
+
+            self.assertEqual(response_msg['retries'], 0)
+            self.assertEqual(response_msg['max_retries'], max_retries)
+            self.assertEqual(response_msg['returncode'], expected_returncode)
+            self.assertEqual(response_msg['non_retriable'], [expected_returncode])
         except Exception as e:
             raise e
         finally:

@@ -61,10 +61,12 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
 
     def should_retry(response_msg):
         is_error = response_msg['returncode'] != 0
+        returncode = response_msg['returncode']
+        is_retriable =  returncode not in response_msg['non_retriable']
         current_retries = response_msg.get('retries', 0)
         msg_max_retries = response_msg.get('max_retries', max_retries)
         retries_pending = current_retries < msg_max_retries
-        return is_error and retries_pending
+        return is_error and is_retriable and retries_pending
 
     def send_response(response_msg):
         if should_retry(response_msg):

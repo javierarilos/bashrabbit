@@ -16,12 +16,12 @@ def currtimemillis():
     return int(round(time.time() * 1000))
 
 
-def post_task(command, reply_to=Destination.responses_pool, max_retries=None):
+def post_task(command, reply_to=Destination.responses_pool, max_retries=None, non_retriable=[]):
     """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
         does NOT wait for response.
         :return: <dict> message created for the task.
     """
-    msg = message.get_request(command, reply_to=Destination.responses_pool, max_retries=max_retries)
+    msg = message.get_request(command, reply_to=Destination.responses_pool, max_retries=max_retries, non_retriable=non_retriable)
 
     if reply_to is Destination.responses_exclusive:
         declare_and_bind(channel_inst, msg['reply_to'])
@@ -31,12 +31,12 @@ def post_task(command, reply_to=Destination.responses_pool, max_retries=None):
     return msg
 
 
-def execute_task(command, reply_to=Destination.responses_pool, timeout=10, max_retries=None):
+def execute_task(command, reply_to=Destination.responses_pool, timeout=10, max_retries=None, non_retriable=[]):
     """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
         synchronously waits for response.
         :return: <dict> response message.
     """
-    task = post_task(command, reply_to, max_retries=max_retries)
+    task = post_task(command, reply_to, max_retries=max_retries, non_retriable=non_retriable)
     start_waiting = datetime.now()
     while True:
         method_frame, header_frame, body = channel_inst.basic_get(TASK_RESPONSES_POOL)

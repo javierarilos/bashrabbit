@@ -9,8 +9,9 @@ def currtimemillis():
 
 class BashTasksMessage(dict):
     def __init__(self, command=None, reply_to=Destination.responses_pool,
-                 max_retries=None, **kwargs):
+                 max_retries=None, non_retriable=[], **kwargs):
         self['command'] = command
+        self['non_retriable'] = non_retriable
         if not 'reply_to' in self:
             self['reply_to'] = DestinationNames.get_for(reply_to)
         if kwargs:
@@ -28,8 +29,8 @@ class BashTasksMessage(dict):
             self[ts_name] = currtimemillis()
 
 
-def get_request(command, reply_to=Destination.responses_pool, max_retries=None):
-    return BashTasksMessage(command=command, reply_to=reply_to, max_retries=max_retries)
+def get_request(command, reply_to=Destination.responses_pool, max_retries=None, non_retriable=[]):
+    return BashTasksMessage(command=command, reply_to=reply_to, max_retries=max_retries, non_retriable=non_retriable)
 
 
 def from_str(json_str):
