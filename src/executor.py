@@ -51,15 +51,13 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
     channels.append(ch)
 
     def create_response_for(msg):
-        return {
-            'correlation_id': msg['correlation_id'],
-            'reply_to': msg['reply_to'],
-            'command': msg['command'],
-            'request_ts': msg['request_ts'],
-            'executor_name': get_executor_name(),
-            'retries': msg.get('retries', 0),
-            'max_retries': msg.get('max_retries', max_retries)
-        }
+        resp = {}
+        resp.update(msg)
+        resp['executor_name'] = get_executor_name()
+        resp['retries'] = msg.get('retries', 0)
+        resp['max_retries'] = msg.get('max_retries', 0)
+        return resp
+
 
     def should_retry(response_msg):
         is_error = response_msg['returncode'] != 0
