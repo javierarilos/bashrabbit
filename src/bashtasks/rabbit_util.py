@@ -1,14 +1,22 @@
 from pika import BlockingConnection, ConnectionParameters, BasicProperties, PlainCredentials
 import pika
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
+from bashtasks.logger import get_logger
+import os
+
+def curr_module_name():
+    return os.path.splitext(os.path.basename(__file__))[0]
 
 
 def connect(host='localhost', usr='guest', pas='guest'):
+    logger = get_logger(name=curr_module_name())
     try:
+        logger.info('Connecting to rabbit: %s:%s@%s', usr, pas, host)
         credentials = PlainCredentials(usr, pas)
         parameters = ConnectionParameters(host, 5672, '/', credentials)
         conn = BlockingConnection(parameters)
     except Exception as e:
+        logger.error('Exception connecting to rabbit: %s:%s@%s', usr, pas, host, exc_info=True)
         conn = None
     return conn
 
