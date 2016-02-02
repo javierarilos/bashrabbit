@@ -12,6 +12,7 @@ import threading
 from socket import gethostname
 from time import sleep
 import logging
+import pika
 
 from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
@@ -79,7 +80,10 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
             tgt_exch = TASK_RESPONSES_POOL
 
         response_str = json.dumps(response_msg)
-        ch.basic_publish(exchange=tgt_exch, routing_key='', body=response_str)
+        props = pika.BasicProperties(
+                             delivery_mode = 2, # make message persistent
+                          )
+        ch.basic_publish(exchange=tgt_exch, routing_key='', body=response_str, properties=props)
 
     def tasks_nr_generator(tasks_nr):
         tasks_nr_gen = tasks_nr
@@ -88,9 +92,9 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
             yield tasks_nr_gen
 
     def trace_msg(msg, context_info=''):
-        logger.info('------------- MSG: %s', context_info)
+        logger.info(u'------------- MSG: %s', context_info)
         for key, value in msg.items():
-            logger.info('\t%s:-> %s', key, str(value))
+            logger.info(u'\t%s:-> %s', key, str(value))
         logger.info('---------------------------------------------')
 
     def handle_command_request(ch, method, properties, body):

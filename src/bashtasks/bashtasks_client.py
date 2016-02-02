@@ -3,6 +3,7 @@
 import json
 import time
 from datetime import datetime
+import pika
 
 from bashtasks.constants import TASK_RESPONSES_POOL, TASK_REQUESTS_POOL
 from bashtasks.constants import Destination, DestinationNames
@@ -27,7 +28,10 @@ def post_task(command, reply_to=Destination.responses_pool, max_retries=None, no
         declare_and_bind(channel_inst, msg['reply_to'])
 
     msg_str = msg.to_json()
-    channel_inst.basic_publish(exchange=TASK_REQUESTS_POOL, routing_key='', body=msg_str)
+    props = pika.BasicProperties(
+                         delivery_mode = 2, # make message persistent
+                      )
+    channel_inst.basic_publish(exchange=TASK_REQUESTS_POOL, routing_key='', body=msg_str, properties=props)
     return msg
 
 
