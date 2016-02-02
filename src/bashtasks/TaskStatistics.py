@@ -89,7 +89,10 @@ class TaskStatistics:
             return 0
 
     def maxExecutionTime(self):
-        return max(self.allExecutionTimes(), default=0)
+        if self.allExecutionTimes() is None or len(list(self.allExecutionTimes())) is 0:
+            return 0
+        else:
+            return max(self.allExecutionTimes())
 
     def allTimesWaiting(self):
         return (time_waiting(msg) for msg in self.msgs)
