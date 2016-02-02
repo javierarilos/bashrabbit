@@ -43,9 +43,21 @@ def trace_msg(msgs_dir, msg):
         err_file.write(json.dumps(msg))
 
 
-def init_dir(dir):
-    if dir:
-        os.makedirs(dir, exist_ok=True)
+def log_exc(txt):
+    logger = get_logger(name=curr_module_name())
+    logger.error(txt)
+
+
+def init_dir(directory):
+    if directory:
+        try:
+            os.makedirs(directory)
+        except OSError as e:
+            if e.errno == 17:  # File exists
+                return
+            log_exc('Exception in init_dir {} : {}'.format(directory, repr(e)))
+        except Exception as e:
+            log_exc('Exception in init_dir {} : {}'.format(directory, repr(e)))
 
 
 def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None,
