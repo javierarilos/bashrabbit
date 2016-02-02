@@ -25,8 +25,10 @@ csv_fields = (
     "post_command_ts",
     "returncode",
     "retries",
+    "max_retries",
     "executor_name",
-    "command"
+    "command",
+    "non_retriable"
 )
 
 DEFAULT_CSV = 'stats_bashtasks.csv'
