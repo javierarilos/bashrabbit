@@ -159,7 +159,7 @@ class TaskStatistics:
         f.write(headers)
 
     def writeCsvMessage(self, msg, filepath=None):
-        csv_msg = ";".join((str(msg[field]) for field in csv_fields)) + '\n'
+        csv_msg = ";".join((str(msg.get(field, '')) for field in csv_fields)) + '\n'
         f = self.getCsvFile(filepath)
         f.write(csv_msg)
         if random() < self.csvPersistenceRatio:
