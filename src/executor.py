@@ -94,7 +94,11 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
     def trace_msg(msg, context_info=''):
         logger.info(u'------------- MSG: %s', context_info)
         for key, value in msg.items():
-            logger.info(u'\t%s:-> %s', key, str(value))
+            try:
+                logger.info(u'\t%s:-> %s', key, value)
+            except Exception as e:
+                logger.error('error in trace message::::', exc_info=True)
+                sys.exit(777)
         logger.info('---------------------------------------------')
 
     def handle_command_request(ch, method, properties, body):
