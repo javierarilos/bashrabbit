@@ -79,7 +79,8 @@ class IntegTestPostTask(unittest.TestCase):
 
 def start_executor_process(tasks_nr=1):
     p = multiprocessing.Process(target=executor.start_executor,
-                                args=(rabbit_host, rabbit_user, rabbit_pass, tasks_nr))
+                                kwargs=({'host': rabbit_host, 'usr': rabbit_user, 'pas': rabbit_pass,
+                                      'tasks_nr': tasks_nr}))
     p.start()
     time.sleep(0.1)
     return p

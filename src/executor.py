@@ -15,13 +15,14 @@ import logging
 import pika
 
 from bashtasks.rabbit_util import connect_and_declare, close_channel_and_conn
-from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
+from bashtasks.constants import DestinationNames, TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 from bashtasks.logger import get_logger
 
 channels = []  # stores all executor thread channels.
 stop = False  # False until the executor is asked to stop
 MB_10 = 10485760
 
+DEFAULT_DESTINATION = DestinationNames.get_for(TASK_REQUESTS_POOL)
 
 def curr_module_name():
     return os.path.splitext(os.path.basename(__file__))[0]
@@ -39,8 +40,8 @@ def get_thread_name():
     return 'worker_th_' + str(x)
 
 
-def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
-                   max_retries=0, verbose=False):
+def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DESTINATION,
+                   tasks_nr=1, max_retries=0, verbose=False):
     curr_th_name = threading.current_thread().name
     logger = get_logger(name=curr_module_name())
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
@@ -144,7 +145,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', tasks_nr=1,
             stop_and_exit()
 
     tasks_nr_gen = tasks_nr_generator(tasks_nr)
-    ch.basic_consume(handle_command_request, queue=TASK_REQUESTS_POOL, no_ack=False)
+    ch.basic_consume(handle_command_request, queue=queue, no_ack=False)
     logger.info("<< Ready: executor %s connected to rabbitmq: %s:%s@%s",
                 curr_th_name, usr, pas, host)
     ch.start_consuming()
@@ -193,6 +194,8 @@ if __name__ == '__main__':
     parser.add_argument('--tasks', default=-1, dest='tasks_nr', type=int)
     parser.add_argument('--max-retries', default=0, dest='max_retries', type=int)
     parser.add_argument('--verbose', action='store_true', dest='verbose')
+    parser.add_argument('--queue', default=DEFAULT_DESTINATION, dest='queue')
+
 
     register_signals_handling()
 
@@ -203,11 +206,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     worker_ths = []
     for x in range(0, args.workers):
-        # daemon=True is not supported by python 2.7
         worker_th = threading.Thread(target=start_executor,
-                                     args=(args.host, args.usr, args.pas,
-                                           args.tasks_nr, args.max_retries,
-                                           args.verbose),
+                                     kwargs=({'host': args.host, 'usr': args.usr, 'pas': args.pas,
+                                           'queue': args.queue, 'tasks_nr': args.tasks_nr,
+                                           'max_retries': args.max_retries, 'verbose': args.verbose}),
                                      name=get_thread_name())
         worker_th.daemon = True
 
