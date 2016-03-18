@@ -102,22 +102,28 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
                 sys.exit(777)
         logger.info('---------------------------------------------')
 
-    def handle_command_request(ch, method, properties, body):
+
+    def execute_command(command):
+        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        o, e = p.communicate()
+
+        return p.returncode, o.decode('utf-8'), e.decode('utf-8')
+
+
+    def handle_message(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
         logger.debug(">>>> msg received: %s from queue %s : correlation_id %d command: %s",
                      curr_th_name, TASK_REQUESTS_POOL, msg['correlation_id'], msg['command'])
-
         try:
             response_msg = create_response_for(msg)
             response_msg['pre_command_ts'] = currtimemillis()
 
-            p = subprocess.Popen(msg['command'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            o, e = p.communicate()
+            returncode, out, err = execute_command(msg['command'])
 
             response_msg['post_command_ts'] = currtimemillis()
-            response_msg['returncode'] = p.returncode
-            response_msg['stdout'] = o.decode('utf-8')
-            response_msg['stderr'] = e.decode('utf-8')
+            response_msg['returncode'] = returncode
+            response_msg['stdout'] = out
+            response_msg['stderr'] = err
 
         except Exception as exc:
             logger.error('**** Command execution error. Exception for : correlation_id %d ',
@@ -145,7 +151,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
             stop_and_exit()
 
     tasks_nr_gen = tasks_nr_generator(tasks_nr)
-    ch.basic_consume(handle_command_request, queue=queue, no_ack=False)
+    ch.basic_consume(handle_message, queue=queue, no_ack=False)
     logger.info("<< Ready: executor %s connected to rabbitmq: %s:%s@%s",
                 curr_th_name, usr, pas, host)
     ch.start_consuming()
