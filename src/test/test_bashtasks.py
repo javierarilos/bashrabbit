@@ -10,7 +10,7 @@ import json
 import bashtasks as bashtasks_mod
 import bashtasks.rabbit_util as rabbit_util
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
-from test.pika_assertions import assertMessageInQueue
+from bashtasks.pika_assertions import assertMessageInQueue
 import executor
 
 rabbit_host = os.getenv('RABBIT_HOST', '127.0.0.1')
