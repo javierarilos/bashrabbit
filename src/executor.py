@@ -41,7 +41,7 @@ def get_thread_name():
 
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DESTINATION,
-                   tasks_nr=1, max_retries=0, verbose=False):
+                   tasks_nr=1, max_retries=0, verbose=False, custom_callback=None):
     curr_th_name = threading.current_thread().name
     logger = get_logger(name=curr_module_name())
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
@@ -118,7 +118,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
             response_msg = create_response_for(msg)
             response_msg['pre_command_ts'] = currtimemillis()
 
-            returncode, out, err = execute_command(msg['command'])
+            returncode, out, err = command_callback(msg['command'])
 
             response_msg['post_command_ts'] = currtimemillis()
             response_msg['returncode'] = returncode
@@ -151,6 +151,9 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
             stop_and_exit()
 
     tasks_nr_gen = tasks_nr_generator(tasks_nr)
+
+    command_callback = custom_callback if custom_callback else execute_command
+
     ch.basic_consume(handle_message, queue=queue, no_ack=False)
     logger.info("<< Ready: executor %s connected to rabbitmq: %s:%s@%s",
                 curr_th_name, usr, pas, host)
