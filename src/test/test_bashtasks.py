@@ -79,8 +79,8 @@ class IntegTestPostTask(unittest.TestCase):
 
 def start_executor_process(tasks_nr=1):
     p = multiprocessing.Process(target=executor.start_executor,
-                                kwargs=({'host': rabbit_host, 'usr': rabbit_user, 'pas': rabbit_pass,
-                                      'tasks_nr': tasks_nr}))
+                                kwargs=({'host': rabbit_host, 'usr': rabbit_user,
+                                         'pas': rabbit_pass, 'tasks_nr': tasks_nr}))
     p.start()
     time.sleep(0.1)
     return p
@@ -162,7 +162,8 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
             bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
             posted_msg = bashtasks.post_task(ls_task)
             start_time = time.time()
-            while 'command' not in response_msg and time.time() - start_time < 10:  # give rabbit and subscriber time to work
+            # give rabbit and subscriber time to work
+            while 'command' not in response_msg and time.time() - start_time < 10:
                 sleep(0.1)
             self.assertTrue('command' in response_msg)
             self.assertEqual(ls_task, response_msg['command'])
@@ -175,6 +176,7 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
         finally:
             kill_executor_process(p)
             time.sleep(0.2)
+
 
 @unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
 class IntegTestRetries(unittest.TestCase):
@@ -224,7 +226,8 @@ class IntegTestRetries(unittest.TestCase):
             p = start_executor_process(tasks_nr=max_retries+1)
             bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
             task = ['grep', 'bye', 'bye']
-            response_msg = bashtasks.execute_task(task, max_retries=max_retries, non_retriable=[expected_returncode])
+            response_msg = bashtasks.execute_task(task, max_retries=max_retries,
+                                                  non_retriable=[expected_returncode])
 
             self.assertEqual(response_msg['retries'], 0)
             self.assertEqual(response_msg['max_retries'], max_retries)
@@ -235,8 +238,6 @@ class IntegTestRetries(unittest.TestCase):
         finally:
             kill_executor_process(p)
             time.sleep(0.2)
-
-
 
 
 if __name__ == '__main__':
