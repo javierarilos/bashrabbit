@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" executor is the process that executes bashtasks
+""" executor is the module that executes bashtasks
 """
 import signal
 import argparse
@@ -24,6 +24,7 @@ MB_10 = 10485760
 
 DEFAULT_DESTINATION = DestinationNames.get_for(TASK_REQUESTS_POOL)
 
+
 def curr_module_name():
     return os.path.splitext(os.path.basename(__file__))[0]
 
@@ -36,8 +37,28 @@ def get_executor_name():
     return ":".join((gethostname(), str(os.getpid()), threading.current_thread().name))
 
 
-def get_thread_name():
-    return 'worker_th_' + str(x)
+def get_thread_name(worker):
+    return 'worker_th_' + str(worker)
+
+
+def start_executors(workers=1, host='127.0.0.1', usr='guest', pas='guest',
+                    queue=DEFAULT_DESTINATION, tasks_nr=1, max_retries=0, verbose=False,
+                    custom_callback=None):
+    worker_ths = []
+    for worker in range(0, workers):
+        worker_th = threading.Thread(target=start_executor,
+                                     kwargs=({'host': host, 'usr': usr, 'pas': pas,
+                                              'queue': queue, 'tasks_nr': tasks_nr,
+                                              'max_retries': max_retries, 'verbose': verbose,
+                                              'custom_callback': custom_callback}),
+                                     name=get_thread_name(worker))
+        worker_th.daemon = True
+
+        worker_th.start()
+        worker_ths.append(worker_th)
+
+    while not stop:
+        sleep(1)
 
 
 def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DESTINATION,
@@ -47,7 +68,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
                 curr_th_name, usr, pas, host, tasks_nr)
 
-    ch = connect_and_declare(host=host, usr=usr, pas=pas)
+    ch = connect_and_declare(host=host, usr=usr, pas=pas, destinations=queue)
     ch.basic_qos(prefetch_count=1)  # consume msgs one at a time
 
     channels.append(ch)
@@ -60,11 +81,10 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
         resp['max_retries'] = msg.get('max_retries', 0)
         return resp
 
-
     def should_retry(response_msg):
         is_error = response_msg['returncode'] != 0
         returncode = response_msg['returncode']
-        is_retriable =  returncode not in response_msg['non_retriable']
+        is_retriable = returncode not in response_msg['non_retriable']
         current_retries = response_msg.get('retries', 0)
         msg_max_retries = response_msg.get('max_retries', max_retries)
         retries_pending = current_retries < msg_max_retries
@@ -82,7 +102,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
 
         response_str = json.dumps(response_msg)
         props = pika.BasicProperties(
-                             delivery_mode = 2, # make message persistent
+                             delivery_mode=2,  # make message persistent
                           )
         ch.basic_publish(exchange=tgt_exch, routing_key='', body=response_str, properties=props)
 
@@ -102,13 +122,11 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
                 sys.exit(777)
         logger.info('---------------------------------------------')
 
-
     def execute_command(command):
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         o, e = p.communicate()
 
         return p.returncode, o.decode('utf-8'), e.decode('utf-8')
-
 
     def handle_message(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
@@ -191,41 +209,3 @@ def register_signals_handling():
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=globals()['__doc__'], add_help=True)
-    parser.add_argument('--host', default='127.0.0.1', dest='host')
-    parser.add_argument('--port', default=5672, dest='port', type=int)
-    parser.add_argument('--user', default='guest', dest='usr')
-    parser.add_argument('--pass', default='guest', dest='pas')
-    parser.add_argument('--workers', default=1, dest='workers', type=int)
-    parser.add_argument('--tasks', default=-1, dest='tasks_nr', type=int)
-    parser.add_argument('--max-retries', default=0, dest='max_retries', type=int)
-    parser.add_argument('--verbose', action='store_true', dest='verbose')
-    parser.add_argument('--queue', default=DEFAULT_DESTINATION, dest='queue')
-
-
-    register_signals_handling()
-
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(1)
-
-    args = parser.parse_args()
-    worker_ths = []
-    for x in range(0, args.workers):
-        worker_th = threading.Thread(target=start_executor,
-                                     kwargs=({'host': args.host, 'usr': args.usr, 'pas': args.pas,
-                                           'queue': args.queue, 'tasks_nr': args.tasks_nr,
-                                           'max_retries': args.max_retries, 'verbose': args.verbose}),
-                                     name=get_thread_name())
-        worker_th.daemon = True
-
-        worker_th.start()
-        worker_ths.append(worker_th)
-
-    while not stop:
-        sleep(1)
-
-    get_logger(name=curr_module_name()).info('Executor exiting now.')
