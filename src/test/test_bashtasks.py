@@ -11,7 +11,7 @@ import bashtasks as bashtasks_mod
 import bashtasks.rabbit_util as rabbit_util
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 from bashtasks.pika_assertions import assertMessageInQueue
-import executor
+import bashtasks.executor_impl as executor
 
 rabbit_host = os.getenv('RABBIT_HOST', '127.0.0.1')
 rabbit_user = os.getenv('RABBIT_USER', 'guest')
