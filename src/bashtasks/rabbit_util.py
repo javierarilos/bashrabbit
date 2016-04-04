@@ -34,12 +34,20 @@ def declare_and_bind(ch, name, routing_key=''):
     ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
 
 
-def connect_and_declare(host='localhost', usr='guest', pas='guest'):
+def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations=None):
+    """ connects to RabbitMQ and does queue/exchange declarations
+        destinations: name(s) of destinations, can be str or list
+    """
+    if not destinations:
+        destinations = [TASK_REQUESTS_POOL, TASK_RESPONSES_POOL]
+    elif isinstance(destinations, basestring):
+        destinations = [destinations]
+
     conn = connect(host=host, usr=usr, pas=pas)
     ch = conn.channel()
 
-    declare_and_bind(ch, TASK_REQUESTS_POOL, routing_key='')
-    declare_and_bind(ch, TASK_RESPONSES_POOL, routing_key='')
+    for destination in destinations:
+        declare_and_bind(ch, TASK_REQUESTS_POOL, routing_key='')
 
     return ch
 
