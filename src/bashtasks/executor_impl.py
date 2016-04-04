@@ -67,7 +67,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
                 curr_th_name, usr, pas, host, tasks_nr)
 
-    ch = connect_and_declare(host=host, usr=usr, pas=pas)
+    ch = connect_and_declare(host=host, usr=usr, pas=pas, destinations=queue)
     ch.basic_qos(prefetch_count=1)  # consume msgs one at a time
 
     channels.append(ch)
