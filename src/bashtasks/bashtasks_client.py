@@ -58,11 +58,11 @@ class BashTasks:
     pass
 
 
-def init(host='127.0.0.1', usr='guest', pas='guest', channel=None):
+def init(host='127.0.0.1', usr='guest', pas='guest', channel=None, destinations=None):
     global channel_inst
     if not channel:
         #TODO should lazy init channel_inst
-        channel_inst = connect_and_declare(host=host, usr=usr, pas=pas)
+        channel_inst = connect_and_declare(host=host, usr=usr, pas=pas, destinations=destinations)
     else:
         channel_inst = channel
 
