@@ -26,7 +26,7 @@ def declare_and_bind(ch, name, routing_key=''):
     ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
 
 
-def connect_and_declare(queue, host='localhost', usr='guest', pas='guest'):
+def connect_and_declare_queue(queue, host='localhost', usr='guest', pas='guest'):
     conn = connect(host=host, usr=usr, pas=pas)
     ch = conn.channel()
     declare_and_bind(ch, queue)
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    channel = connect_and_declare(queue=queue_to, host=host, usr=usr, pas=pas)
+    channel = connect_and_declare_queue(queue=queue_to, host=host, usr=usr, pas=pas)
     result_methods = []
 
     function = commands[command]
