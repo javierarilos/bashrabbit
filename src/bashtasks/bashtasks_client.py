@@ -13,34 +13,39 @@ from bashtasks import message
 channel_inst = None
 DEFAULT_DESTINATION = DestinationNames.get_for(TASK_REQUESTS_POOL)
 
+
 def currtimemillis():
     return int(round(time.time() * 1000))
 
 
-def post_task(command, destination=DEFAULT_DESTINATION, reply_to=Destination.responses_pool, max_retries=None, non_retriable=[]):
+def post_task(command, destination=DEFAULT_DESTINATION, reply_to=Destination.responses_pool,
+              max_retries=None, non_retriable=[]):
     """ posts command to executors via RabbitMQ destination
         does NOT wait for response.
         :return: <dict> message created for the task.
     """
-    msg = message.get_request(command, reply_to=Destination.responses_pool, max_retries=max_retries, non_retriable=non_retriable)
+    msg = message.get_request(command, reply_to=Destination.responses_pool, max_retries=max_retries,
+                              non_retriable=non_retriable)
 
     if reply_to is Destination.responses_exclusive:
         declare_and_bind(channel_inst, msg['reply_to'])
 
     msg_str = msg.to_json()
     props = pika.BasicProperties(
-                         delivery_mode = 2, # make message persistent
+                         delivery_mode=2,  # make message persistent
                       )
     channel_inst.basic_publish(exchange=destination, routing_key='', body=msg_str, properties=props)
     return msg
 
 
-def execute_task(command, destination=DEFAULT_DESTINATION, reply_to=Destination.responses_pool, timeout=10, max_retries=None, non_retriable=[]):
+def execute_task(command, destination=DEFAULT_DESTINATION, reply_to=Destination.responses_pool,
+                 timeout=10, max_retries=None, non_retriable=[]):
     """ posts command to executors via RabbitMQ destination
         synchronously waits for response.
         :return: <dict> response message.
     """
-    task = post_task(command, destination=destination, reply_to=reply_to, max_retries=max_retries, non_retriable=non_retriable)
+    task = post_task(command, destination=destination, reply_to=reply_to, max_retries=max_retries,
+                     non_retriable=non_retriable)
     start_waiting = datetime.now()
     while True:
         method_frame, header_frame, body = channel_inst.basic_get(TASK_RESPONSES_POOL)
@@ -61,7 +66,7 @@ class BashTasks:
 def init(host='127.0.0.1', usr='guest', pas='guest', channel=None, destinations=None):
     global channel_inst
     if not channel:
-        #TODO should lazy init channel_inst
+        # TODO should lazy init channel_inst
         channel_inst = connect_and_declare(host=host, usr=usr, pas=pas, destinations=destinations)
     else:
         channel_inst = channel
