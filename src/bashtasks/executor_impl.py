@@ -41,15 +41,16 @@ def get_thread_name(worker):
     return 'worker_th_' + str(worker)
 
 
-def start_executors(workers=1, host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DESTINATION,
-                    tasks_nr=1, max_retries=0, verbose=False, custom_callback=None):
+def start_executors(workers=1, host='127.0.0.1', usr='guest', pas='guest',
+                    queue=DEFAULT_DESTINATION, tasks_nr=1, max_retries=0, verbose=False,
+                    custom_callback=None):
     worker_ths = []
     for worker in range(0, workers):
         worker_th = threading.Thread(target=start_executor,
                                      kwargs=({'host': host, 'usr': usr, 'pas': pas,
                                               'queue': queue, 'tasks_nr': tasks_nr,
                                               'max_retries': max_retries, 'verbose': verbose,
-                                              'custom_callback':custom_callback}),
+                                              'custom_callback': custom_callback}),
                                      name=get_thread_name(worker))
         worker_th.daemon = True
 
@@ -83,7 +84,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
     def should_retry(response_msg):
         is_error = response_msg['returncode'] != 0
         returncode = response_msg['returncode']
-        is_retriable =  returncode not in response_msg['non_retriable']
+        is_retriable = returncode not in response_msg['non_retriable']
         current_retries = response_msg.get('retries', 0)
         msg_max_retries = response_msg.get('max_retries', max_retries)
         retries_pending = current_retries < msg_max_retries
@@ -101,7 +102,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
 
         response_str = json.dumps(response_msg)
         props = pika.BasicProperties(
-                             delivery_mode = 2, # make message persistent
+                             delivery_mode=2,  # make message persistent
                           )
         ch.basic_publish(exchange=tgt_exch, routing_key='', body=response_str, properties=props)
 
