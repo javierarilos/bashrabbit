@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-""" executor is the process that executes bashtasks
+""" start_executor is the process that executes bashtasks
 """
 
 import argparse
 import sys
 
 from bashtasks.constants import DestinationNames, TASK_REQUESTS_POOL
-from bashtasks.executor_impl import register_signals_handling, start_executors, curr_module_name
+from bashtasks.executor import register_signals_handling, start_executors, curr_module_name
 from bashtasks.logger import get_logger
 
 channels = []  # stores all executor thread channels.

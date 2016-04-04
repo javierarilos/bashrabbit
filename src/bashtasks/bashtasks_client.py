@@ -18,7 +18,7 @@ def currtimemillis():
 
 
 def post_task(command, destination=DEFAULT_DESTINATION, reply_to=Destination.responses_pool, max_retries=None, non_retriable=[]):
-    """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
+    """ posts command to executors via RabbitMQ destination
         does NOT wait for response.
         :return: <dict> message created for the task.
     """
@@ -36,7 +36,7 @@ def post_task(command, destination=DEFAULT_DESTINATION, reply_to=Destination.res
 
 
 def execute_task(command, destination=DEFAULT_DESTINATION, reply_to=Destination.responses_pool, timeout=10, max_retries=None, non_retriable=[]):
-    """ posts command to executors via RabbitMQ TASK_REQUESTS_POOL
+    """ posts command to executors via RabbitMQ destination
         synchronously waits for response.
         :return: <dict> response message.
     """

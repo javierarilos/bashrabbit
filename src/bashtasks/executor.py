@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" executor is the process that executes bashtasks
+""" executor is the module that executes bashtasks
 """
 import signal
 import argparse
