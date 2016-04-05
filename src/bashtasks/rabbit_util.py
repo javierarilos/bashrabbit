@@ -47,7 +47,7 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations
     ch = conn.channel()
 
     for destination in destinations:
-        declare_and_bind(ch, TASK_REQUESTS_POOL, routing_key='')
+        declare_and_bind(ch, destination, routing_key='')
 
     return ch
 
