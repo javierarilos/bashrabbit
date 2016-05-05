@@ -4,6 +4,7 @@ from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 from bashtasks.logger import get_logger
 import os
 
+
 def curr_module_name():
     return os.path.splitext(os.path.basename(__file__))[0]
 
@@ -13,7 +14,7 @@ def connect(host='localhost', usr='guest', pas='guest'):
     try:
         logger.info('Connecting to rabbit: %s:%s@%s', usr, pas, host)
         credentials = PlainCredentials(usr, pas)
-        parameters = ConnectionParameters(host, 5672, '/', credentials)
+        parameters = ConnectionParameters(host, 5672, '/', credentials, heartbeat_interval=10)
         conn = BlockingConnection(parameters)
     except Exception as e:
         logger.error('Exception connecting to rabbit: %s:%s@%s', usr, pas, host, exc_info=True)
@@ -29,8 +30,8 @@ def close_channel_and_conn(ch):
 
 
 def declare_and_bind(ch, name, routing_key=''):
-    ch.exchange_declare(exchange=name, type='direct')
-    ch.queue_declare(queue=name)
+    ch.exchange_declare(exchange=name, type='direct', passive=True)
+    ch.queue_declare(queue=name, passive=True)
     ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
 
 
