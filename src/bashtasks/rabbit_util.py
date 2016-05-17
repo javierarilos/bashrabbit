@@ -14,7 +14,7 @@ def connect(host='localhost', usr='guest', pas='guest'):
     try:
         logger.info('Connecting to rabbit: %s:%s@%s', usr, pas, host)
         credentials = PlainCredentials(usr, pas)
-        parameters = ConnectionParameters(host, 5672, '/', credentials, heartbeat_interval=10)
+        parameters = ConnectionParameters(host, 5672, '/', credentials)
         conn = BlockingConnection(parameters)
     except Exception as e:
         logger.error('Exception connecting to rabbit: %s:%s@%s', usr, pas, host, exc_info=True)
