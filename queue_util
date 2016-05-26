@@ -20,8 +20,9 @@ def close_channel_and_conn(ch):
         ch._impl.close()
 
 
-def declare_and_bind(ch, name, routing_key=''):
-    ch.exchange_declare(exchange=name, type='direct')
+def declare_and_bind(ch, name, routing_key='#'):
+    print '=================================', name, routing_key
+    ch.exchange_declare(exchange=name, type='topic')
     ch.queue_declare(queue=name)
     ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
 
@@ -61,19 +62,24 @@ def copy_messages(channel, queue_from, queue_to):
     return replicate_queue(channel, queue_from, queue_to, keep_originals=True)
 
 
+def declare(channel, queue_from, queue_to=None):
+    return declare_and_bind(channel, queue_from)
+
+
 if __name__ == '__main__':
 
     commands = {'copy': copy_messages,
-                'move': move_messages}
+                'move': move_messages,
+                'declare': declare}
 
     parser = argparse.ArgumentParser(description=globals()['__doc__'], add_help=True)
     parser.add_argument('--host', default='127.0.0.1', dest='host')
     parser.add_argument('--user', default='guest', dest='usr')
     parser.add_argument('--pass', default='guest', dest='pas')
     parser.add_argument('--command', required=True, dest='command',
-                        help='command to execute, one of: ' + str(list(commands.keys())))
+                        metavar='COMMAND to execute, one of: ' + str(list(commands.keys())))
     parser.add_argument('--from', required=True, dest='queue_from')
-    parser.add_argument('--to', required=True, dest='queue_to')
+    parser.add_argument('--to', required=False, dest='queue_to', default=None)
 
     args = parser.parse_args()
 
@@ -89,8 +95,12 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    channel = connect_and_declare_queue(queue=queue_to, host=host, usr=usr, pas=pas)
-    result_methods = []
+    if queue_to:
+        channel = connect_and_declare_queue(queue=queue_to, host=host, usr=usr, pas=pas)
+        result_methods = []
+    else:
+        conn = connect(host=host, usr=usr, pas=pas)
+        channel = conn.channel()
 
     function = commands[command]
     msgs_nr = function(channel, queue_from, queue_to)
