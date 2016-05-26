@@ -194,9 +194,18 @@ class IntegTestRetries(unittest.TestCase):
             ls_task = ['ls', '-la']
             response_msg = bashtasks.execute_task(ls_task, max_retries=max_retries)
 
-            self.assertEqual(response_msg['retries'], 0)
-            self.assertEqual(response_msg['max_retries'], max_retries)
-            self.assertEqual(response_msg['returncode'], 0)
+            expect_retries = 'response.retries should be {}'.format(0)
+            self.assertEqual(response_msg['retries'], 0, expect_retries)
+
+            expect_max_retries = 'response.max_retries should be {}'.format(max_retries)
+            self.assertEqual(response_msg['max_retries'], max_retries, expect_max_retries)
+
+            expect_returncode = 'response.returncode should be {}'.format(0)
+            self.assertEqual(response_msg['returncode'], 0, expect_returncode)
+        except Exception as e:
+            print 'test_execute_task_OK_returns_zero_retries', e
+            raise e
+
         finally:
             kill_executor_process(p)
             time.sleep(0.2)
@@ -209,10 +218,16 @@ class IntegTestRetries(unittest.TestCase):
             ls_task = ['non-existent-command']
             response_msg = bashtasks.execute_task(ls_task, max_retries=max_retries)
 
-            self.assertEqual(response_msg['retries'], max_retries)
-            self.assertEqual(response_msg['max_retries'], max_retries)
-            self.assertNotEqual(response_msg['returncode'], 0)
+            expect_retries = 'response.retries should be {}'.format(max_retries)
+            self.assertEqual(response_msg['retries'], max_retries, expect_retries)
+
+            expect_max_retries = 'response.max_retries should be {}'.format(max_retries)
+            self.assertEqual(response_msg['max_retries'], max_retries, expect_max_retries)
+
+            expect_returncode = 'response.returncode should be different to {}'.format(max_retries)
+            self.assertNotEqual(response_msg['returncode'], 0, expect_returncode)
         except Exception as e:
+            print 'test_execute_task_KO_returns_max_retries', e
             raise e
         finally:
             kill_executor_process(p)
@@ -233,6 +248,7 @@ class IntegTestRetries(unittest.TestCase):
             self.assertEqual(response_msg['returncode'], expected_returncode)
             self.assertEqual(response_msg['non_retriable'], [expected_returncode])
         except Exception as e:
+            print 'test_execute_task_KO_with_nonretries', e
             raise e
         finally:
             kill_executor_process(p)
