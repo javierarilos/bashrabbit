@@ -3,6 +3,10 @@ import pika
 from bashtasks.constants import TASK_REQUESTS_POOL, TASK_RESPONSES_POOL
 from bashtasks.logger import get_logger
 import os
+import time
+
+
+MAX_RECONNECT_RETRIES = 6
 
 
 def curr_module_name():
@@ -20,6 +24,26 @@ def connect(host='localhost', usr='guest', pas='guest'):
         logger.error('Exception connecting to rabbit: %s:%s@%s', usr, pas, host, exc_info=True)
         conn = None
     return conn
+
+
+def connect_with_retries(host='localhost', usr='guest', pas='guest'):
+    delay = 0.5
+    retries = 0
+    while retries < MAX_RECONNECT_RETRIES:
+        try:
+            conn = connect(host=host, usr=usr, pas=pas)
+            ch = conn.channel()
+            if conn and conn.is_open:
+                return ch
+        except Exception as e:
+            logger = get_logger(name=curr_module_name())
+            logger.error('############ error Connecting to rabbit: %s:%s@%s',
+                         usr, pas, host, exc_info=True)
+            time.sleep(delay)
+            delay *= 2
+            retries += 1
+    raise Exception("Couldn't connect to rabbit-{}:{}@{}. {} retries"
+                    .format(usr, pas, host, MAX_RECONNECT_RETRIES))
 
 
 def close_channel_and_conn(ch):
@@ -44,8 +68,7 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations
     elif isinstance(destinations, basestring):
         destinations = [destinations]
 
-    conn = connect(host=host, usr=usr, pas=pas)
-    ch = conn.channel()
+    ch = connect_with_retries(host=host, usr=usr, pas=pas)
 
     for destination in destinations:
         try:
@@ -54,8 +77,7 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations
             logger = get_logger(name=curr_module_name())
             logger.warning('Destination with name=%s already exists, error. Skipping',
                            destination, exc_info=True)
-            conn = connect(host=host, usr=usr, pas=pas)
-            ch = conn.channel()
+            ch = connect_with_retries(host=host, usr=usr, pas=pas)
 
     return ch
 
