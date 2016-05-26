@@ -30,8 +30,8 @@ def close_channel_and_conn(ch):
 
 
 def declare_and_bind(ch, name, routing_key=''):
-    ch.exchange_declare(exchange=name, type='direct', passive=True)
-    ch.queue_declare(queue=name, passive=True)
+    ch.exchange_declare(exchange=name, type='topic')
+    ch.queue_declare(queue=name)
     ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
 
 
@@ -48,7 +48,14 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations
     ch = conn.channel()
 
     for destination in destinations:
-        declare_and_bind(ch, destination, routing_key='')
+        try:
+            declare_and_bind(ch, destination, routing_key='#')
+        except pika.exceptions.ChannelClosed as e:
+            logger = get_logger(name=curr_module_name())
+            logger.warning('Destination with name=%s already exists, error. Skipping',
+                           destination, exc_info=True)
+            conn = connect(host=host, usr=usr, pas=pas)
+            ch = conn.channel()
 
     return ch
 
