@@ -131,7 +131,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
     def handle_message(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
         logger.debug(">>>> msg received: %s from queue %s : correlation_id %d command: %s",
-                     curr_th_name, TASK_REQUESTS_POOL, msg['correlation_id'], msg['command'])
+                     curr_th_name, TASK_REQUESTS_POOL, msg['correlation_id'], msg['command'][:50])
         try:
             response_msg = create_response_for(msg)
             response_msg['pre_command_ts'] = currtimemillis()
