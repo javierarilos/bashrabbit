@@ -8,6 +8,10 @@ import argparse
 
 import bashtasks as bashtasks_mod
 
+from bashtasks.constants import TASK_REQUESTS_POOL
+from bashtasks.constants import DestinationNames
+DEFAULT_DESTINATION = DestinationNames.get_for(TASK_REQUESTS_POOL)
+
 parser = argparse.ArgumentParser(description=globals()['__doc__'], add_help=True)
 parser.add_argument('--host', default='127.0.0.1', dest='host')
 parser.add_argument('--port', default=5672, dest='port', type=int)
@@ -17,6 +21,8 @@ parser.add_argument('--max-retries', default=None, dest='max_retries', type=int)
 parser.add_argument('--no-wait', default=False, action='store_true', dest='fire_and_forget')
 parser.add_argument('--command', required=True, dest='command',
                     metavar='"COMMAND" to execute. Better wrapped with quotes (")')
+parser.add_argument('--destination', dest='destination', default=DEFAULT_DESTINATION,
+                    metavar='"destination" (exchange->queue) to send the message to.')
 
 if len(sys.argv) == 1:
     parser.print_help()
@@ -34,10 +40,11 @@ start_ts = currtimemillis()
 bashtasks = bashtasks_mod.init(host=args.host, usr=args.usr, pas=args.pas)
 
 if args.fire_and_forget:
-    bashtasks.post_task(args.command, max_retries=args.max_retries)
+    bashtasks.post_task(args.command, max_retries=args.max_retries, destination=args.destination)
     sys.exit(0)
 
-response_msg = bashtasks.execute_task(args.command, max_retries=args.max_retries)
+response_msg = bashtasks.execute_task(args.command, max_retries=args.max_retries,
+                                      destination=args.destination)
 
 total_time = currtimemillis() - response_msg['request_ts']
 command_time = response_msg['post_command_ts'] - response_msg['pre_command_ts']
