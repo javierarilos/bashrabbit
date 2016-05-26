@@ -150,6 +150,7 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
             # subscribe to responses.
             # prepare executor, and send task.
             # subscribe to responses and check response arrives
+            p = start_executor_process()
 
             subscriber_th = threading.Thread(target=start_subscriber,
                                              args=(),
@@ -157,15 +158,13 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
             subscriber_th.daemon = True
             subscriber_th.start()
 
-            p = start_executor_process()
-
             bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
             posted_msg = bashtasks.post_task(ls_task)
             start_time = time.time()
             # give rabbit and subscriber time to work
             while 'command' not in response_msg and time.time() - start_time < 10:
                 sleep(0.1)
-            self.assertTrue('command' in response_msg)
+            self.assertTrue('command' in response_msg, 'expected response_msg to include command')
             self.assertEqual(ls_task, response_msg['command'])
         except Exception as e:
             print('Got exception in test:', repr(e))
