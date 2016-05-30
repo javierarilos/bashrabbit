@@ -38,8 +38,9 @@ class MessageAmqpPika:
 
 
 class TaskResponseSubscriber:
-    def __init__(self, host='127.0.0.1', usr='guest', pas='guest'):
+    def __init__(self, host='127.0.0.1', port=5672, usr='guest', pas='guest'):
         self.host = host
+        self.port = port
         self.usr = usr
         self.pas = pas
 
@@ -50,7 +51,7 @@ class TaskResponseSubscriber:
 
         global channel_inst
         if not channel_inst:
-            channel_inst = connect_and_declare(host=self.host, usr=self.usr, pas=self.pas)
+            channel_inst = connect_and_declare(host=self.host, port=self.port, usr=self.usr, pas=self.pas)
 
         channel_inst.basic_qos(prefetch_count=1)  # consume msgs one at a time
 
@@ -59,10 +60,10 @@ class TaskResponseSubscriber:
         channel_inst.start_consuming()
 
 
-def init_subscriber(host='127.0.0.1', usr='guest', pas='guest', channel=None):
+def init_subscriber(host='127.0.0.1', port=5672, usr='guest', pas='guest', channel=None):
     if channel:
         global channel_inst
         channel_inst = channel
 
-    resp_subs = TaskResponseSubscriber(host=host, usr=usr, pas=pas)
+    resp_subs = TaskResponseSubscriber(host=host, port=port, usr=usr, pas=pas)
     return resp_subs

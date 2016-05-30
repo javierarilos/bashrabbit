@@ -41,13 +41,13 @@ def get_thread_name(worker):
     return 'worker_th_' + str(worker)
 
 
-def start_executors(workers=1, host='127.0.0.1', usr='guest', pas='guest',
+def start_executors(workers=1, host='127.0.0.1', port=5672, usr='guest', pas='guest',
                     queue=DEFAULT_DESTINATION, tasks_nr=1, max_retries=0, verbose=False,
                     custom_callback=None):
     worker_ths = []
     for worker in range(0, workers):
         worker_th = threading.Thread(target=start_executor,
-                                     kwargs=({'host': host, 'usr': usr, 'pas': pas,
+                                     kwargs=({'host': host, 'port': port, 'usr': usr, 'pas': pas,
                                               'queue': queue, 'tasks_nr': tasks_nr,
                                               'max_retries': max_retries, 'verbose': verbose,
                                               'custom_callback': custom_callback}),
@@ -61,14 +61,14 @@ def start_executors(workers=1, host='127.0.0.1', usr='guest', pas='guest',
         sleep(1)
 
 
-def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DESTINATION,
+def start_executor(host='127.0.0.1', port=5672, usr='guest', pas='guest', queue=DEFAULT_DESTINATION,
                    tasks_nr=1, max_retries=0, verbose=False, custom_callback=None):
     curr_th_name = threading.current_thread().name
     logger = get_logger(name=curr_module_name())
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
                 curr_th_name, usr, pas, host, tasks_nr)
 
-    ch = connect_and_declare(host=host, usr=usr, pas=pas, destinations=queue)
+    ch = connect_and_declare(host=host, port=port, usr=usr, pas=pas, destinations=queue)
     ch.basic_qos(prefetch_count=1)  # consume msgs one at a time
 
     channels.append(ch)
@@ -131,7 +131,7 @@ def start_executor(host='127.0.0.1', usr='guest', pas='guest', queue=DEFAULT_DES
     def handle_message(ch, method, properties, body):
         msg = json.loads(body.decode('utf-8'))
         logger.debug(">>>> msg received: %s from queue %s : correlation_id %d command: %s",
-                     curr_th_name, TASK_REQUESTS_POOL, msg['correlation_id'], msg['command'][:50])
+                     curr_th_name, queue, msg['correlation_id'], msg['command'][:50])
         try:
             response_msg = create_response_for(msg)
             response_msg['pre_command_ts'] = currtimemillis()

@@ -5,9 +5,9 @@ import bashtasks.rabbit_util as rabbit_util
 
 
 def assertMessageInQueue(queue_name, channel=None, timeout=3,
-                         host='127.0.0.1', usr='guest', pas='guest'):
+                         host='127.0.0.1', usr='guest', port=5672, pas='guest'):
     if not channel:
-        channel = rabbit_util.connect(host=host, usr=usr, pas=pas).channel()
+        channel = rabbit_util.connect(host=host, usr=usr, port=port, pas=pas).channel()
 
     start_waiting = datetime.now()
     while True:

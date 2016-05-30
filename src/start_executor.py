@@ -35,6 +35,6 @@ if __name__ == '__main__':
         sys.exit(1)
 
     args = parser.parse_args()
-    start_executors(args.workers, args.host, args.usr, args.pas,  queue=args.queue,
+    start_executors(args.workers, args.host, args.port, args.usr, args.pas,  queue=args.queue,
                     tasks_nr=args.tasks_nr, max_retries=args.max_retries, verbose=args.verbose)
     get_logger(name=curr_module_name()).info('Executor exiting now.')

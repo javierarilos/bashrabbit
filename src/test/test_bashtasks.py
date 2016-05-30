@@ -16,8 +16,10 @@ import bashtasks.executor as executor
 rabbit_host = os.getenv('RABBIT_HOST', '127.0.0.1')
 rabbit_user = os.getenv('RABBIT_USER', 'guest')
 rabbit_pass = os.getenv('RABBIT_PASS', 'guest')
+rabbit_port = int(os.getenv('RABBIT_PORT', '5672'))
 
 unavailable_rabbit = not rabbit_util.is_rabbit_available(host=rabbit_host,
+                                                         port=rabbit_port,
                                                          usr=rabbit_user,
                                                          pas=rabbit_pass)
 
@@ -53,22 +55,22 @@ class TestBashTasks(unittest.TestCase):
 @unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
 class IntegTestPostTask(unittest.TestCase):
     def setUp(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
 
     def tearDown(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
         bashtasks_mod.reset()
 
     def test_post_task_sends_message(self):
-        bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
         bashtasks.post_task(['ls', '-la'])
 
-        body = assertMessageInQueue(TASK_REQUESTS_POOL, host=rabbit_host,
+        body = assertMessageInQueue(TASK_REQUESTS_POOL, host=rabbit_host,port=rabbit_port,
                                     usr=rabbit_user, pas=rabbit_pass)
 
-    def test_post_task_creates_correct_task_msg(self):
+    def  test_post_task_creates_correct_task_msg(self):
         ls_task = ['ls', '-la']
-        bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
         msg = bashtasks.post_task(ls_task)
 
         self.assertEqual(msg['command'], ls_task)
@@ -79,7 +81,7 @@ class IntegTestPostTask(unittest.TestCase):
 
 def start_executor_process(tasks_nr=1):
     p = multiprocessing.Process(target=executor.start_executor,
-                                kwargs=({'host': rabbit_host, 'usr': rabbit_user,
+                                kwargs=({'host': rabbit_host, 'port': rabbit_port, 'usr': rabbit_user,
                                          'pas': rabbit_pass, 'tasks_nr': tasks_nr}))
     p.start()
     time.sleep(0.1)
@@ -94,15 +96,15 @@ def kill_executor_process(p):
 @unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
 class IntegTestExecuteTask(unittest.TestCase):
     def setUp(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
 
     def tearDown(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
         bashtasks_mod.reset()
 
     def test_execute_task_raises_on_timeout(self):
         ls_task = ['ls', '-la']
-        bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
         with self.assertRaises(Exception):
             response_msg = bashtasks.execute_task(ls_task, timeout=0.3)
 
@@ -110,7 +112,7 @@ class IntegTestExecuteTask(unittest.TestCase):
         try:
             p = start_executor_process()
 
-            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
             ls_task = ['ls', '-la']
             response_msg = bashtasks.execute_task(ls_task)
 
@@ -127,10 +129,10 @@ class IntegTestExecuteTask(unittest.TestCase):
 @unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
 class IntegTestTaskResponseSubscriber(unittest.TestCase):
     def setUp(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
 
     def tearDown(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
         bashtasks_mod.reset()
 
     def test_subscribe(self):
@@ -143,6 +145,7 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
                 response_msg.update(body)
                 msg.ack()
             subscriber = bashtasks_mod.init_subscriber(host=rabbit_host,
+                                                       port=rabbit_port,
                                                        usr=rabbit_user, pas=rabbit_pass)
             subscriber.subscribe(on_response_received)
 
@@ -158,7 +161,7 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
             subscriber_th.daemon = True
             subscriber_th.start()
 
-            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
             posted_msg = bashtasks.post_task(ls_task)
             start_time = time.time()
             # give rabbit and subscriber time to work
@@ -180,17 +183,17 @@ class IntegTestTaskResponseSubscriber(unittest.TestCase):
 @unittest.skipIf(unavailable_rabbit, "SKIP integration Tests: rabbitmq NOT available")
 class IntegTestRetries(unittest.TestCase):
     def setUp(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
 
     def tearDown(self):
-        rabbit_util.purge(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+        rabbit_util.purge(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
         bashtasks_mod.reset()
 
     def test_execute_task_OK_returns_zero_retries(self):
         try:
             p = start_executor_process()
             max_retries = 5
-            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
             ls_task = ['ls', '-la']
             response_msg = bashtasks.execute_task(ls_task, max_retries=max_retries)
 
@@ -214,7 +217,7 @@ class IntegTestRetries(unittest.TestCase):
         try:
             max_retries = 2
             p = start_executor_process(tasks_nr=max_retries+1)
-            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
             ls_task = ['non-existent-command']
             response_msg = bashtasks.execute_task(ls_task, max_retries=max_retries)
 
@@ -238,7 +241,7 @@ class IntegTestRetries(unittest.TestCase):
             max_retries = 2
             expected_returncode = 2
             p = start_executor_process(tasks_nr=max_retries+1)
-            bashtasks = bashtasks_mod.init(host=rabbit_host, usr=rabbit_user, pas=rabbit_pass)
+            bashtasks = bashtasks_mod.init(host=rabbit_host, port=rabbit_port, usr=rabbit_user, pas=rabbit_pass)
             task = ['grep', 'bye', 'bye']
             response_msg = bashtasks.execute_task(task, max_retries=max_retries,
                                                   non_retriable=[expected_returncode])

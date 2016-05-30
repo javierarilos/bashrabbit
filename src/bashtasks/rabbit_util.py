@@ -13,12 +13,12 @@ def curr_module_name():
     return os.path.splitext(os.path.basename(__file__))[0]
 
 
-def connect(host='localhost', usr='guest', pas='guest'):
+def connect(host='localhost', port=5672, usr='guest', pas='guest'):
     logger = get_logger(name=curr_module_name())
     try:
         logger.info('Connecting to rabbit: %s:%s@%s', usr, pas, host)
         credentials = PlainCredentials(usr, pas)
-        parameters = ConnectionParameters(host, 5672, '/', credentials)
+        parameters = ConnectionParameters(host, port, '/', credentials)
         conn = BlockingConnection(parameters)
     except Exception as e:
         logger.error('Exception connecting to rabbit: %s:%s@%s', usr, pas, host, exc_info=True)
@@ -26,12 +26,12 @@ def connect(host='localhost', usr='guest', pas='guest'):
     return conn
 
 
-def connect_with_retries(host='localhost', usr='guest', pas='guest'):
+def connect_with_retries(host='localhost', port=5672, usr='guest', pas='guest'):
     delay = 0.5
     retries = 0
     while retries < MAX_RECONNECT_RETRIES:
         try:
-            conn = connect(host=host, usr=usr, pas=pas)
+            conn = connect(host=host, port=port, usr=usr, pas=pas)
             ch = conn.channel()
             if conn and conn.is_open:
                 return ch
@@ -59,7 +59,7 @@ def declare_and_bind(ch, name, routing_key=''):
     ch.queue_bind(exchange=name, queue=name, routing_key=routing_key)
 
 
-def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations=None):
+def connect_and_declare(host='localhost', port=5672, usr='guest', pas='guest', destinations=None):
     """ connects to RabbitMQ and does queue/exchange declarations
         destinations: name(s) of destinations, can be str or list
     """
@@ -68,7 +68,7 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations
     elif isinstance(destinations, basestring):
         destinations = [destinations]
 
-    ch = connect_with_retries(host=host, usr=usr, pas=pas)
+    ch = connect_with_retries(host=host, port=port, usr=usr, pas=pas)
 
     for destination in destinations:
         try:
@@ -77,13 +77,13 @@ def connect_and_declare(host='localhost', usr='guest', pas='guest', destinations
             logger = get_logger(name=curr_module_name())
             logger.warning('Destination with name=%s already exists, error. Skipping',
                            destination, exc_info=True)
-            ch = connect_with_retries(host=host, usr=usr, pas=pas)
+            ch = connect_with_retries(host=host, port=port, usr=usr, pas=pas)
 
     return ch
 
 
-def purge(host='localhost', usr='guest', pas='guest'):
-    conn = connect(host=host, usr=usr, pas=pas)
+def purge(host='localhost', port=5672, usr='guest', pas='guest'):
+    conn = connect(host=host, port=port, usr=usr, pas=pas)
     ch = conn.channel()
     try:
         ch.queue_purge(queue=TASK_REQUESTS_POOL)
@@ -94,8 +94,8 @@ def purge(host='localhost', usr='guest', pas='guest'):
         print('Not an error if this is a Test. Purging queues exception:', e)
 
 
-def is_rabbit_available(host='localhost', usr='guest', pas='guest'):
-    conn = connect(host=host, usr=usr, pas=pas)
+def is_rabbit_available(host='localhost', port=5672, usr='guest', pas='guest'):
+    conn = connect(host=host, port=port, usr=usr, pas=pas)
     if conn is not None:
         conn.close()
         return True

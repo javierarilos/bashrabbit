@@ -60,7 +60,7 @@ def init_dir(directory):
             log_exc('Exception in init_dir {} : {}'.format(directory, repr(e)))
 
 
-def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None,
+def start_responses_recvr(host='127.0.0.1', port=5672, usr='guest', pas='guest', stats=None,
                           msgs_dir=None, trace_err_only=False, verbose=False):
     logger = get_logger(name=curr_module_name())
 
@@ -102,7 +102,7 @@ def start_responses_recvr(host='127.0.0.1', usr='guest', pas='guest', stats=None
     logger.info(">> Starting receiver %s connecting to rabbitmq: %s:%s@%s",
                 curr_th_name, usr, pas, host)
 
-    subscriber = init_subscriber(host=host, usr=usr, pas=pas)
+    subscriber = init_subscriber(host=host, port=port, usr=usr, pas=pas)
     subscriber.subscribe(handle_response)
 
 
