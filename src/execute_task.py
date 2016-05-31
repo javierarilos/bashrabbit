@@ -37,7 +37,7 @@ def currtimemillis():
 
 start_ts = currtimemillis()
 
-bashtasks = bashtasks_mod.init(host=args.host, usr=args.usr, pas=args.pas)
+bashtasks = bashtasks_mod.init(host=args.host, port=args.port, usr=args.usr, pas=args.pas)
 
 if args.fire_and_forget:
     bashtasks.post_task(args.command, max_retries=args.max_retries, destination=args.destination)
