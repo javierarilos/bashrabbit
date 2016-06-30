@@ -11,5 +11,5 @@ setup(name='bashtasks',
       packages=['bashtasks'],
       package_dir={'bashtasks': 'src/bashtasks'},
       install_requires=['pika'],
-      scripts=['src/start_executor.py', 'src/execute_task.py', 'src/responses_recvr.py', ]
+      scripts=['src/start_executor.py', 'src/execute_task.py', 'src/responses_recvr.py', 'queue_util']
       )
