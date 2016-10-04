@@ -62,7 +62,8 @@ def start_executors(workers=1, host='127.0.0.1', port=5672, usr='guest', pas='gu
 
 
 def start_executor(host='127.0.0.1', port=5672, usr='guest', pas='guest', queue=DEFAULT_DESTINATION,
-                   tasks_nr=1, max_retries=0, verbose=False, custom_callback=None):
+                   tasks_nr=1, max_retries=0, verbose=False, custom_callback=None,
+                   ok_returncodes=(0, )):
     curr_th_name = threading.current_thread().name
     logger = get_logger(name=curr_module_name())
     logger.info(">> Starting executor %s connecting to rabbitmq: %s:%s@%s for executing %d tasks.",
@@ -72,6 +73,9 @@ def start_executor(host='127.0.0.1', port=5672, usr='guest', pas='guest', queue=
     ch.basic_qos(prefetch_count=1)  # consume msgs one at a time
 
     channels.append(ch)
+
+    def is_ok_returncode(code):
+        return code in ok_returncodes
 
     def create_response_for(msg):
         resp = {}
@@ -151,7 +155,7 @@ def start_executor(host='127.0.0.1', port=5672, usr='guest', pas='guest', queue=
             response_msg['stdout'] = 'Exception trying to execute command.'
             response_msg['stderr'] = repr(exc)
         finally:
-            if verbose or response_msg['returncode'] != 0:
+            if verbose or not is_ok_returncode(response_msg['returncode']):
                 trace_msg(msg, context_info='Request msg: '+str(msg['correlation_id']))
                 resp_header = 'Response msg: '+str(response_msg['correlation_id']) + \
                               ' returncode: '+str(response_msg['returncode'])
