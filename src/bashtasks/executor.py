@@ -43,14 +43,15 @@ def get_thread_name(worker):
 
 def start_executors(workers=1, host='127.0.0.1', port=5672, usr='guest', pas='guest',
                     queue=DEFAULT_DESTINATION, tasks_nr=1, max_retries=0, verbose=False,
-                    custom_callback=None):
+                    custom_callback=None, ok_returncodes=(0, )):
     worker_ths = []
     for worker in range(0, workers):
         worker_th = threading.Thread(target=start_executor,
                                      kwargs=({'host': host, 'port': port, 'usr': usr, 'pas': pas,
                                               'queue': queue, 'tasks_nr': tasks_nr,
                                               'max_retries': max_retries, 'verbose': verbose,
-                                              'custom_callback': custom_callback}),
+                                              'custom_callback': custom_callback,
+                                              'ok_returncodes': ok_returncodes}),
                                      name=get_thread_name(worker))
         worker_th.daemon = True
 
