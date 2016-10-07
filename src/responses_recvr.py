@@ -83,10 +83,10 @@ def start_responses_recvr(host='127.0.0.1', port=5672, usr='guest', pas='guest',
                      threading.current_thread().name, TASK_RESPONSES_POOL,
                      msg['correlation_id'], get_pending_nr(), str(is_error(msg)))
         if verbose:
-            logger.info('---------------------------------------- MSG:')
+            logger.debug('---------------------------------------- MSG:')
             for key, value in msg.items():
-                logger.info('\t%s:-> %s', key, str(value))
-            logger.info('---------------------------------------------')
+                logger.debug('\t%s:-> %s', key, str(value))
+            logger.debug('---------------------------------------------')
 
         stats.trackMsg(msg)
 

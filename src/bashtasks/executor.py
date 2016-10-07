@@ -118,14 +118,14 @@ def start_executor(host='127.0.0.1', port=5672, usr='guest', pas='guest', queue=
             yield tasks_nr_gen
 
     def trace_msg(msg, context_info=''):
-        logger.info(u'------------- MSG: %s', context_info)
+        logger.debug(u'------------- MSG: %s', context_info)
         for key, value in msg.items():
             try:
-                logger.info(u'\t%s:-> %s', key, value)
+                logger.debug(u'\t%s:-> %s', key, value)
             except Exception as e:
                 logger.error('error in trace message::::', exc_info=True)
                 sys.exit(777)
-        logger.info('---------------------------------------------')
+        logger.debug('---------------------------------------------')
 
     def execute_command(command):
         p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
